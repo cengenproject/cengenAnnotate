@@ -1,9 +1,9 @@
-#' Score and classify clusters against CeNGEN neuron types
+#' Score and classify clusters against CeNGEN cell types
 #'
 #' Convenience wrapper that runs [score_cengen_matrix()] followed by
-#' [classify_cengen_matches()], and attaches the full cluster x neuron-type
+#' [classify_cengen_matches()], and attaches the full cluster x cell-type
 #' score matrix to the result (retrieve it with [cengen_matrix()]) for
-#' drilling into all candidate neuron types beyond the top 2.
+#' drilling into all candidate cell types beyond the top 2.
 #'
 #' @inheritParams score_cengen_matrix
 #' @param cutoff,min_gap,min_genes_used Passed to [classify_cengen_matches()].
@@ -44,7 +44,7 @@ score_cengen_clusters <- function(
   result
 }
 
-#' Get the full cluster x neuron-type score matrix
+#' Get the full cluster x cell-type score matrix
 #'
 #' Retrieves the score matrix attached to a `cengen_scores` object by
 #' [score_cengen_clusters()].

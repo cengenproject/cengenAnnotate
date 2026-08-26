@@ -9,8 +9,8 @@ plot_cengen_dotplot(
   markers,
   cluster,
   scores = NULL,
-  neuron_types = NULL,
-  top_n_neuron_types = 8,
+  cell_types = NULL,
+  top_n_cell_types = 8,
   top_n = 20,
   cluster_col = "cluster",
   gene_col = "gene"
@@ -25,13 +25,13 @@ plot_cengen_dotplot(
 column/prepared panel).}
 
 \item{scores}{Optional \code{cengen_scores} object (from
-\code{\link[=score_cengen_clusters]{score_cengen_clusters()}}); if supplied and \code{neuron_types} is not,
-the top \code{top_n_neuron_types} candidates for \code{cluster} are plotted.}
+\code{\link[=score_cengen_clusters]{score_cengen_clusters()}}); if supplied and \code{cell_types} is not,
+the top \code{top_n_cell_types} candidates for \code{cluster} are plotted.}
 
-\item{neuron_types}{Optional explicit vector of neuron types to plot.
+\item{cell_types}{Optional explicit vector of cell types to plot.
 Required if \code{scores} is not supplied.}
 
-\item{top_n_neuron_types}{Number of top-scoring neuron types to plot
+\item{top_n_cell_types}{Number of top-scoring cell types to plot
 when deriving the shortlist from \code{scores} (default 8).}
 
 \item{top_n, cluster_col, gene_col}{Passed to \code{\link[=prepare_marker_panel]{prepare_marker_panel()}} when
@@ -42,7 +42,7 @@ A \code{ggplot} object.
 }
 \description{
 Reproduces the view the CeNGEN website would show for a cluster's marker
-gene panel, restricted to a shortlist of candidate neuron types, using
+gene panel, restricted to a shortlist of candidate cell types, using
 the same signals the coherence score is built from: dot size is percent
 of cells expressing (coverage), dot color is the per-gene z-score
 (specificity). Useful for visually inspecting \code{"review_ambiguous"}

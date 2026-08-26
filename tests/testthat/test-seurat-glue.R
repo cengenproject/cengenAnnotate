@@ -1,6 +1,6 @@
 make_test_scores <- function() {
   tibble::tribble(
-    ~cluster, ~best_neuron_type, ~best_score, ~decision,
+    ~cluster, ~best_cell_type, ~best_score, ~decision,
     "0", "AWA", 0.85, "annotate",
     "1", "AVA", 0.40, "review_ambiguous"
   )

@@ -9,7 +9,7 @@
 #' @param pattern Optional regular expression to filter dataset names.
 #'
 #' @return A tibble with one row per dataset: `name`, `stage`, `sex`,
-#'   `dataset_label`, `source_version`, `date_prepared`, `n_neuron_types`,
+#'   `dataset_label`, `source_version`, `date_prepared`, `n_cell_types`,
 #'   `n_genes`, `version`, `created`.
 #' @export
 list_cengen_datasets <- function(board = cengen_board(), pattern = NULL) {
@@ -22,7 +22,7 @@ list_cengen_datasets <- function(board = cengen_board(), pattern = NULL) {
     return(tibble::tibble(
       name = character(), stage = character(), sex = character(),
       dataset_label = character(), source_version = character(),
-      date_prepared = character(), n_neuron_types = integer(),
+      date_prepared = character(), n_cell_types = integer(),
       n_genes = integer(), version = character(), created = as.POSIXct(character())
     ))
   }
@@ -37,7 +37,7 @@ list_cengen_datasets <- function(board = cengen_board(), pattern = NULL) {
       dataset_label = as.character(user$dataset_label %||% NA),
       source_version = as.character(user$source_version %||% NA),
       date_prepared = as.character(user$date_prepared %||% NA),
-      n_neuron_types = as.integer(user$n_neuron_types %||% NA),
+      n_cell_types = as.integer(user$n_cell_types %||% NA),
       n_genes = as.integer(user$n_genes %||% NA),
       version = as.character(meta$version$version %||% NA),
       created = meta$created %||% as.POSIXct(NA)

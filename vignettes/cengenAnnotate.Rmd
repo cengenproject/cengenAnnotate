@@ -21,7 +21,7 @@ library(dplyr)
 Manually annotating clusters in a new C. elegans single-cell dataset
 usually means: run `Seurat::FindAllMarkers()`, copy the top ~20 marker
 genes for a cluster, paste them into the CeNGEN website, and visually
-judge whether the resulting dot plot shows one neuron type standing out.
+judge whether the resulting dot plot shows one cell type standing out.
 `cengenAnnotate` computes that judgment directly from CeNGEN's reference
 expression data, so most clusters can be annotated automatically and only
 the genuinely ambiguous ones come back for manual review.
@@ -33,21 +33,21 @@ the CeNGEN pins board with [list_cengen_datasets()] and
 
 ## 1. A CeNGEN reference object
 
-A reference is a long table of `gene`, `neuron_type`, `avg_expr`
+A reference is a long table of `gene`, `cell_type`, `avg_expr`
 (unthresholded average expression) and `pct_expr` (percent of cells of
 that type expressing the gene) — the same two quantities a CeNGEN dot
 plot encodes as color and size.
 
 ```{r}
 set.seed(1)
-neuron_types <- paste0("N", 1:6)
+cell_types <- paste0("N", 1:6)
 
 make_gene <- function(gene, specific_to, base = 0, high = 8, cov_high = 90, cov_low = 15) {
   tibble(
     gene = gene,
-    neuron_type = neuron_types,
-    avg_expr = ifelse(neuron_types == specific_to, high, base),
-    pct_expr = ifelse(neuron_types == specific_to, cov_high, cov_low)
+    cell_type = cell_types,
+    avg_expr = ifelse(cell_types == specific_to, high, base),
+    pct_expr = ifelse(cell_types == specific_to, cov_high, cov_low)
   )
 }
 
@@ -89,7 +89,7 @@ prepare_marker_panel(markers, top_n = 20)
 ## 3. Scoring and classification
 
 `score_cengen_clusters()` scores every cluster against every candidate
-neuron type and classifies each as `"annotate"` or in need of review.
+cell type and classifies each as `"annotate"` or in need of review.
 
 ```{r}
 result <- score_cengen_clusters(
@@ -99,12 +99,12 @@ result <- score_cengen_clusters(
 result
 ```
 
-`"annotate"` clusters have one neuron type that's both well-covered and
+`"annotate"` clusters have one cell type that's both well-covered and
 specific across the marker panel; clusters below the score/gap cutoffs, or
 with too few usable marker genes, come back as `"review_ambiguous"` /
 `"review_insufficient_markers"` for manual follow-up instead.
 
-The full cluster x neuron-type matrix (not just the top 2 candidates) is
+The full cluster x cell-type matrix (not just the top 2 candidates) is
 attached to the result:
 
 ```{r}
@@ -137,7 +137,7 @@ cluster's marker panel using the same size/color signals the score is
 built from:
 
 ```{r, fig.width=5, fig.height=4}
-plot_cengen_dotplot(reference, markers, cluster = "0", scores = result, top_n_neuron_types = 4)
+plot_cengen_dotplot(reference, markers, cluster = "0", scores = result, top_n_cell_types = 4)
 ```
 
 ## 6. Using real CeNGEN reference data

@@ -5,9 +5,9 @@
 #' `cengen_reference` object, precomputing the per-gene statistics that
 #' [score_cengen_matrix()] needs.
 #'
-#' @param data A data frame with columns `gene`, `neuron_type`, `avg_expr`
+#' @param data A data frame with columns `gene`, `cell_type`, `avg_expr`
 #'   (unthresholded average expression level) and `pct_expr` (percent of
-#'   cells of that neuron type expressing the gene, on a 0-100 scale).
+#'   cells of that cell type expressing the gene, on a 0-100 scale).
 #' @param meta A named list of metadata describing the dataset (e.g.
 #'   `stage`, `sex`, `source_version`). Optional.
 #'
@@ -15,20 +15,20 @@
 #' @export
 new_cengen_reference <- function(data, meta = list()) {
   assert_has_columns(
-    data, c("gene", "neuron_type", "avg_expr", "pct_expr"),
+    data, c("gene", "cell_type", "avg_expr", "pct_expr"),
     "data", "cengen_invalid_reference_error"
   )
 
   data <- tibble::as_tibble(data)
   data$gene <- normalize_gene_symbol(as.character(data$gene))
-  data$neuron_type <- as.character(data$neuron_type)
+  data$cell_type <- as.character(data$cell_type)
   data$avg_expr <- as.numeric(data$avg_expr)
   data$pct_expr <- as.numeric(data$pct_expr)
 
-  dup_key <- paste(data$gene, data$neuron_type, sep = "\r")
+  dup_key <- paste(data$gene, data$cell_type, sep = "\r")
   if (anyDuplicated(dup_key) > 0) {
     cengen_abort(
-      "`data` has duplicate (gene, neuron_type) rows; each pair must appear at most once.",
+      "`data` has duplicate (gene, cell_type) rows; each pair must appear at most once.",
       class = "cengen_invalid_reference_error"
     )
   }
@@ -55,8 +55,8 @@ print.cengen_reference <- function(x, ...) {
   cat(sprintf("  label:   %s\n", meta$dataset_label %||% "?"))
   cat(sprintf("  prepared: %s\n", meta$date_prepared %||% "?"))
   cat(sprintf(
-    "  genes: %d, neuron types: %d\n",
-    dplyr::n_distinct(x$data$gene), dplyr::n_distinct(x$data$neuron_type)
+    "  genes: %d, cell types: %d\n",
+    dplyr::n_distinct(x$data$gene), dplyr::n_distinct(x$data$cell_type)
   ))
   invisible(x)
 }

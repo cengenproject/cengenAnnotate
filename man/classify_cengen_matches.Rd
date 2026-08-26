@@ -24,15 +24,16 @@ required to auto-annotate (guards against ambiguous ties).}
 below this, the cluster is always sent to review.}
 }
 \value{
-A tibble with one row per cluster: \code{cluster}, \code{best_neuron_type},
-\code{best_score}, \code{second_neuron_type}, \code{second_score}, \code{gap},
+A tibble with one row per cluster: \code{cluster}, \code{best_cell_type},
+\code{best_score}, \code{second_cell_type}, \code{second_score}, \code{gap},
 \code{n_genes_used}, \code{n_genes_requested}, \code{n_genes_missing_from_reference},
-\code{n_genes_uninformative}, \code{decision}.
+\code{n_genes_uninformative}, \code{decision}. Sorted by \code{best_score} descending
+(most confident cluster first), not by input cluster order.
 }
 \description{
-Applies the cutoff/gap decision rule to a cluster x neuron-type score
+Applies the cutoff/gap decision rule to a cluster x cell-type score
 matrix (from \code{\link[=score_cengen_matrix]{score_cengen_matrix()}}), reducing each cluster to its best
-and second-best matching neuron type and a decision.
+and second-best matching cell type and a decision.
 }
 \details{
 Decision priority, evaluated in order:
@@ -40,7 +41,7 @@ Decision priority, evaluated in order:
 \item If \code{n_genes_used < min_genes_used}: \code{"review_insufficient_markers"},
 regardless of score (too few usable marker genes to trust any match).
 \item Else if \code{best_score >= cutoff} AND \code{gap >= min_gap}:
-\code{"annotate"} (one neuron type stands out clearly).
+\code{"annotate"} (one cell type stands out clearly).
 \item Otherwise: \code{"review_ambiguous"} (either no candidate scores high
 enough, or more than one candidate is plausible).
 }

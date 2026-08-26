@@ -1,14 +1,14 @@
-test_that("a gene specific to one neuron type scores highest there", {
+test_that("a gene specific to one cell type scores highest there", {
   ref <- make_test_reference()
   panel <- make_panel("c1", "spec_A")
 
   observed <- score_cengen_matrix(panel, ref)
   expected <- expected_cluster_scores(make_test_reference_data(), "spec_A")
 
-  observed_vec <- stats::setNames(observed$score, observed$neuron_type)
+  observed_vec <- stats::setNames(observed$score, observed$cell_type)
   expect_equal(observed_vec[names(expected)], expected, tolerance = 1e-6)
 
-  expect_equal(observed$neuron_type[which.max(observed$score)], "A")
+  expect_equal(observed$cell_type[which.max(observed$score)], "A")
   expect_true(all(observed$n_genes_used == 1))
   expect_true(all(observed$n_genes_uninformative == 0))
   expect_true(all(observed$n_genes_missing_from_reference == 0))
@@ -33,25 +33,25 @@ test_that("a housekeeping gene (sd ~ 0) is excluded, not scored as zero, and doe
 test_that("coverage hinge: pct_expr just below min_pct_expr gates the score to 0", {
   ref <- make_test_reference()
   below <- score_cengen_matrix(make_panel("c1", "cov_below"), ref, min_pct_expr = 10)
-  expect_equal(below$score[below$neuron_type == "A"], 0, tolerance = 1e-10)
+  expect_equal(below$score[below$cell_type == "A"], 0, tolerance = 1e-10)
 })
 
 test_that("coverage hinge: pct_expr just above min_pct_expr yields a nonzero score", {
   ref <- make_test_reference()
   above <- score_cengen_matrix(make_panel("c1", "cov_above"), ref, min_pct_expr = 10)
-  observed <- above$score[above$neuron_type == "A"]
+  observed <- above$score[above$cell_type == "A"]
   expected <- expected_cluster_scores(make_test_reference_data(), "cov_above")[["A"]]
 
   expect_gt(observed, 0)
   expect_equal(observed, expected, tolerance = 1e-6)
 })
 
-test_that("a neuron type with near-zero coverage across the whole panel scores exactly 0, not NaN", {
+test_that("a cell type with near-zero coverage across the whole panel scores exactly 0, not NaN", {
   ref <- make_test_reference()
   panel <- make_panel("c1", c("spec_A", "cov_below", "cov_above"))
   observed <- score_cengen_matrix(panel, ref)
 
-  z_score <- observed$score[observed$neuron_type == "Z"]
+  z_score <- observed$score[observed$cell_type == "Z"]
   expect_equal(z_score, 0, tolerance = 1e-10)
   expect_false(is.nan(z_score))
   expect_false(is.na(z_score))
@@ -85,8 +85,8 @@ test_that("geometric combine requires both signals; arithmetic lets one compensa
   geo <- score_cengen_matrix(panel, ref, combine = "geometric")
   arith <- score_cengen_matrix(panel, ref, combine = "arithmetic")
 
-  geo_a <- geo$score[geo$neuron_type == "A"]
-  arith_a <- arith$score[arith$neuron_type == "A"]
+  geo_a <- geo$score[geo$cell_type == "A"]
+  arith_a <- arith$score[arith$cell_type == "A"]
 
   # cov(A) = 0.11 (low), spec(A) is high -> geometric mean is pulled down
   # much more than the arithmetic average.
@@ -136,7 +136,7 @@ test_that("an underscore gene symbol in the reference still matches a Seurat-ren
   observed <- score_cengen_matrix(panel, ref)
 
   expect_true(all(observed$n_genes_missing_from_reference == 0))
-  expect_equal(observed$neuron_type[which.max(observed$score)], "A")
+  expect_equal(observed$cell_type[which.max(observed$score)], "A")
 })
 
 test_that("score_cengen_matrix scores multiple clusters independently", {
@@ -149,7 +149,7 @@ test_that("score_cengen_matrix scores multiple clusters independently", {
   observed <- score_cengen_matrix(panel, ref)
   expect_setequal(unique(observed$cluster), c("c1", "c2"))
 
-  c1_a <- observed$score[observed$cluster == "c1" & observed$neuron_type == "A"]
-  c2_a <- observed$score[observed$cluster == "c2" & observed$neuron_type == "A"]
+  c1_a <- observed$score[observed$cluster == "c1" & observed$cell_type == "A"]
+  c2_a <- observed$score[observed$cluster == "c2" & observed$cell_type == "A"]
   expect_false(isTRUE(all.equal(c1_a, c2_a)))
 })

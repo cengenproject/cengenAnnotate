@@ -7,9 +7,9 @@
 new_cengen_reference(data, meta = list())
 }
 \arguments{
-\item{data}{A data frame with columns \code{gene}, \code{neuron_type}, \code{avg_expr}
+\item{data}{A data frame with columns \code{gene}, \code{cell_type}, \code{avg_expr}
 (unthresholded average expression level) and \code{pct_expr} (percent of
-cells of that neuron type expressing the gene, on a 0-100 scale).}
+cells of that cell type expressing the gene, on a 0-100 scale).}
 
 \item{meta}{A named list of metadata describing the dataset (e.g.
 \code{stage}, \code{sex}, \code{source_version}). Optional.}

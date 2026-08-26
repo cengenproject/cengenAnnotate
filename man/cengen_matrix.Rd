@@ -2,7 +2,7 @@
 % Please edit documentation in R/annotate.R
 \name{cengen_matrix}
 \alias{cengen_matrix}
-\title{Get the full cluster x neuron-type score matrix}
+\title{Get the full cluster x cell-type score matrix}
 \usage{
 cengen_matrix(x)
 }

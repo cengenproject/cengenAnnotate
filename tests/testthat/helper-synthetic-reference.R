@@ -1,6 +1,6 @@
 # Small synthetic CeNGEN-like reference used across scoring tests.
 #
-# Neuron types: A, B, C, D, Z
+# Cell types: A, B, C, D, Z
 #   - "spec_A" is specific to A (high avg_expr + high pct_expr there, low
 #     elsewhere), and reasonably covered (pct_expr >= 10) everywhere except Z.
 #   - "house" is a housekeeping gene: identical avg_expr everywhere, so its
@@ -8,12 +8,12 @@
 #   - "cov_below"/"cov_above" share the same avg_expr pattern (specific to A)
 #     but differ only in pct_expr at A: 9 (just below the default
 #     min_pct_expr = 10) vs 11 (just above), isolating the coverage hinge.
-#   - Neuron type Z has pct_expr = 2 (< 10) for every gene, so every gene's
+#   - Cell type Z has pct_expr = 2 (< 10) for every gene, so every gene's
 #     coverage is gated to 0 there -> Z's score is always exactly 0, with no
 #     dependence on specificity.
 make_test_reference_data <- function() {
   tibble::tribble(
-    ~gene,        ~neuron_type, ~avg_expr, ~pct_expr,
+    ~gene,        ~cell_type, ~avg_expr, ~pct_expr,
     "spec_A",     "A",          8,         95,
     "spec_A",     "B",          1,         20,
     "spec_A",     "C",          1,         20,
@@ -55,7 +55,7 @@ make_test_reference <- function() {
 }
 
 # Independent (non-package) reference implementation of the per-gene,
-# per-neuron-type coherence signal, used to compute expected values without
+# per-cell-type coherence signal, used to compute expected values without
 # sharing code paths with R/score.R.
 expected_gene_type_signal <- function(data, gene, min_pct_expr = 10,
                                        combine = "geometric",
@@ -74,10 +74,10 @@ expected_gene_type_signal <- function(data, gene, min_pct_expr = 10,
     cov_weight * cov + spec_weight * spec
   }
 
-  stats::setNames(s, rows$neuron_type)
+  stats::setNames(s, rows$cell_type)
 }
 
-# Expected cluster-level score per neuron type for a given gene set, using
+# Expected cluster-level score per cell type for a given gene set, using
 # the same exclusion rules as the package (missing genes and sigma ~ 0
 # genes are dropped before averaging).
 expected_cluster_scores <- function(data, genes, min_pct_expr = 10,
@@ -91,9 +91,9 @@ expected_cluster_scores <- function(data, genes, min_pct_expr = 10,
     !is.na(sigma) && sigma > eps
   }, present)
 
-  neuron_types <- sort(unique(data$neuron_type))
+  cell_types <- sort(unique(data$cell_type))
   if (length(usable) == 0) {
-    return(stats::setNames(rep(NA_real_, length(neuron_types)), neuron_types))
+    return(stats::setNames(rep(NA_real_, length(cell_types)), cell_types))
   }
 
   signals <- lapply(usable, expected_gene_type_signal,
@@ -101,5 +101,5 @@ expected_cluster_scores <- function(data, genes, min_pct_expr = 10,
     cov_weight = cov_weight, spec_weight = spec_weight
   )
   mat <- do.call(rbind, signals)
-  colMeans(mat)[neuron_types]
+  colMeans(mat)[cell_types]
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/score.R
 \name{score_cengen_matrix}
 \alias{score_cengen_matrix}
-\title{Score clusters against every candidate CeNGEN neuron type}
+\title{Score clusters against every candidate CeNGEN cell type}
 \usage{
 score_cengen_matrix(
   markers,
@@ -28,7 +28,7 @@ or an already-prepared panel (a data frame with \code{cluster}, \code{gene},
 \code{markers} is not already a prepared panel.}
 
 \item{min_pct_expr}{Minimum percent-expressing (0-100) for a gene to
-count as "covered" in a neuron type; below this, coverage is 0.}
+count as "covered" in a cell type; below this, coverage is 0.}
 
 \item{combine}{How to combine the coverage and specificity signals per
 gene: \code{"geometric"} (default) or \code{"arithmetic"}.}
@@ -38,33 +38,33 @@ signals (exponents for \code{"geometric"}, linear weights for
 \code{"arithmetic"}).}
 }
 \value{
-A long tibble with columns \code{cluster}, \code{neuron_type}, \code{score},
+A long tibble with columns \code{cluster}, \code{cell_type}, \code{score},
 \code{n_genes_used}, \code{n_genes_requested}, \code{n_genes_missing_from_reference},
 \code{n_genes_uninformative}.
 }
 \description{
 Computes a "dot-plot-mirrored coherence score" for each (cluster,
-neuron type) pair: how consistently the cluster's marker gene panel is
+cell type) pair: how consistently the cluster's marker gene panel is
 both highly expressed (coverage, mirroring dot \emph{size}) and specific
-(mirroring dot \emph{color}) in that neuron type, relative to CeNGEN's other
-neuron types. This is the computational equivalent of visually judging
-whether a CeNGEN dot plot shows one neuron type standing out.
+(mirroring dot \emph{color}) in that cell type, relative to CeNGEN's other
+cell types. This is the computational equivalent of visually judging
+whether a CeNGEN dot plot shows one cell type standing out.
 }
 \details{
-For each gene \code{g} and neuron type \code{t}:
+For each gene \code{g} and cell type \code{t}:
 \itemize{
 \item \code{cov(g,t) = 0} if \code{pct_expr(g,t) < min_pct_expr}, else
 \code{pct_expr(g,t) / 100}.
 \item \code{z(g,t) = (avg_expr(g,t) - mu_g) / sigma_g}, where \code{mu_g}/\code{sigma_g}
-are gene \code{g}'s mean/sd of \code{avg_expr} across all neuron types.
+are gene \code{g}'s mean/sd of \code{avg_expr} across all cell types.
 \code{spec(g,t) = plogis(z(g,t))}.
 \item \code{s(g,t)} combines the two: for \code{combine = "geometric"} (default),
 \code{cov(g,t)^cov_weight * spec(g,t)^spec_weight} (requires both signals
 to be non-trivial simultaneously); for \code{"arithmetic"},
 \code{cov_weight * cov(g,t) + spec_weight * spec(g,t)}.
 }
-The cluster-level score for neuron type \code{t} is the mean of \code{s(g,t)} over
+The cluster-level score for cell type \code{t} is the mean of \code{s(g,t)} over
 the cluster's usable marker genes. Genes absent from the reference, or
-with near-zero variance across neuron types (uninformative), are
+with near-zero variance across cell types (uninformative), are
 excluded from scoring and tallied in the diagnostic columns.
 }

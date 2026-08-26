@@ -2,7 +2,7 @@
 % Please edit documentation in R/annotate.R
 \name{score_cengen_clusters}
 \alias{score_cengen_clusters}
-\title{Score and classify clusters against CeNGEN neuron types}
+\title{Score and classify clusters against CeNGEN cell types}
 \usage{
 score_cengen_clusters(
   markers,
@@ -31,7 +31,7 @@ or an already-prepared panel (a data frame with \code{cluster}, \code{gene},
 \code{markers} is not already a prepared panel.}
 
 \item{min_pct_expr}{Minimum percent-expressing (0-100) for a gene to
-count as "covered" in a neuron type; below this, coverage is 0.}
+count as "covered" in a cell type; below this, coverage is 0.}
 
 \item{combine}{How to combine the coverage and specificity signals per
 gene: \code{"geometric"} (default) or \code{"arithmetic"}.}
@@ -49,7 +49,7 @@ an attribute.
 }
 \description{
 Convenience wrapper that runs \code{\link[=score_cengen_matrix]{score_cengen_matrix()}} followed by
-\code{\link[=classify_cengen_matches]{classify_cengen_matches()}}, and attaches the full cluster x neuron-type
+\code{\link[=classify_cengen_matches]{classify_cengen_matches()}}, and attaches the full cluster x cell-type
 score matrix to the result (retrieve it with \code{\link[=cengen_matrix]{cengen_matrix()}}) for
-drilling into all candidate neuron types beyond the top 2.
+drilling into all candidate cell types beyond the top 2.
 }

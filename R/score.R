@@ -1,27 +1,27 @@
-#' Score clusters against every candidate CeNGEN neuron type
+#' Score clusters against every candidate CeNGEN cell type
 #'
 #' Computes a "dot-plot-mirrored coherence score" for each (cluster,
-#' neuron type) pair: how consistently the cluster's marker gene panel is
+#' cell type) pair: how consistently the cluster's marker gene panel is
 #' both highly expressed (coverage, mirroring dot *size*) and specific
-#' (mirroring dot *color*) in that neuron type, relative to CeNGEN's other
-#' neuron types. This is the computational equivalent of visually judging
-#' whether a CeNGEN dot plot shows one neuron type standing out.
+#' (mirroring dot *color*) in that cell type, relative to CeNGEN's other
+#' cell types. This is the computational equivalent of visually judging
+#' whether a CeNGEN dot plot shows one cell type standing out.
 #'
-#' For each gene `g` and neuron type `t`:
+#' For each gene `g` and cell type `t`:
 #' \itemize{
 #'   \item `cov(g,t) = 0` if `pct_expr(g,t) < min_pct_expr`, else
 #'     `pct_expr(g,t) / 100`.
 #'   \item `z(g,t) = (avg_expr(g,t) - mu_g) / sigma_g`, where `mu_g`/`sigma_g`
-#'     are gene `g`'s mean/sd of `avg_expr` across all neuron types.
+#'     are gene `g`'s mean/sd of `avg_expr` across all cell types.
 #'     `spec(g,t) = plogis(z(g,t))`.
 #'   \item `s(g,t)` combines the two: for `combine = "geometric"` (default),
 #'     `cov(g,t)^cov_weight * spec(g,t)^spec_weight` (requires both signals
 #'     to be non-trivial simultaneously); for `"arithmetic"`,
 #'     `cov_weight * cov(g,t) + spec_weight * spec(g,t)`.
 #' }
-#' The cluster-level score for neuron type `t` is the mean of `s(g,t)` over
+#' The cluster-level score for cell type `t` is the mean of `s(g,t)` over
 #' the cluster's usable marker genes. Genes absent from the reference, or
-#' with near-zero variance across neuron types (uninformative), are
+#' with near-zero variance across cell types (uninformative), are
 #' excluded from scoring and tallied in the diagnostic columns.
 #'
 #' @param markers Either raw marker output (see [prepare_marker_panel()])
@@ -32,14 +32,14 @@
 #' @param top_n,cluster_col,gene_col Passed to [prepare_marker_panel()] when
 #'   `markers` is not already a prepared panel.
 #' @param min_pct_expr Minimum percent-expressing (0-100) for a gene to
-#'   count as "covered" in a neuron type; below this, coverage is 0.
+#'   count as "covered" in a cell type; below this, coverage is 0.
 #' @param combine How to combine the coverage and specificity signals per
 #'   gene: `"geometric"` (default) or `"arithmetic"`.
 #' @param cov_weight,spec_weight Weights on the coverage and specificity
 #'   signals (exponents for `"geometric"`, linear weights for
 #'   `"arithmetic"`).
 #'
-#' @return A long tibble with columns `cluster`, `neuron_type`, `score`,
+#' @return A long tibble with columns `cluster`, `cell_type`, `score`,
 #'   `n_genes_used`, `n_genes_requested`, `n_genes_missing_from_reference`,
 #'   `n_genes_uninformative`.
 #' @export
@@ -72,7 +72,7 @@ score_cengen_matrix <- function(
   # to the same convention as the reference's gene column.
   panel$gene <- normalize_gene_symbol(as.character(panel$gene))
 
-  neuron_types <- sort(unique(reference$data$neuron_type))
+  cell_types <- sort(unique(reference$data$cell_type))
   ref_genes <- unique(reference$gene_stats$gene)
   eps <- 1e-8
 
@@ -97,7 +97,7 @@ score_cengen_matrix <- function(
     if (n_used == 0) {
       return(tibble::tibble(
         cluster = cl,
-        neuron_type = neuron_types,
+        cell_type = cell_types,
         score = NA_real_,
         n_genes_used = n_used,
         n_genes_requested = n_requested,
@@ -121,17 +121,17 @@ score_cengen_matrix <- function(
     }
 
     agg <- dplyr::summarise(
-      dplyr::group_by(sub, .data$neuron_type),
+      dplyr::group_by(sub, .data$cell_type),
       score = mean(.data$s, na.rm = TRUE),
       .groups = "drop"
     )
 
-    full <- tibble::tibble(neuron_type = neuron_types)
-    agg <- dplyr::left_join(full, agg, by = "neuron_type")
+    full <- tibble::tibble(cell_type = cell_types)
+    agg <- dplyr::left_join(full, agg, by = "cell_type")
 
     tibble::tibble(
       cluster = cl,
-      neuron_type = agg$neuron_type,
+      cell_type = agg$cell_type,
       score = agg$score,
       n_genes_used = n_used,
       n_genes_requested = n_requested,

@@ -27,7 +27,7 @@ write_cengen_annotations(
 (default \code{"annotate"} only).}
 
 \item{metadata_col, score_col}{Names of the new metadata columns to add,
-holding the matched neuron type and its score respectively.}
+holding the matched cell type and its score respectively.}
 
 \item{overwrite}{If \code{FALSE} (default), errors if \code{metadata_col} already
 exists in \code{object@meta.data}.}

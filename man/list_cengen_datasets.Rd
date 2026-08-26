@@ -13,7 +13,7 @@ list_cengen_datasets(board = cengen_board(), pattern = NULL)
 }
 \value{
 A tibble with one row per dataset: \code{name}, \code{stage}, \code{sex},
-\code{dataset_label}, \code{source_version}, \code{date_prepared}, \code{n_neuron_types},
+\code{dataset_label}, \code{source_version}, \code{date_prepared}, \code{n_cell_types},
 \code{n_genes}, \code{version}, \code{created}.
 }
 \description{

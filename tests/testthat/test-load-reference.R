@@ -1,13 +1,13 @@
 test_that("new_cengen_reference validates required columns", {
   expect_error(
-    new_cengen_reference(tibble::tibble(gene = "g1", neuron_type = "A")),
+    new_cengen_reference(tibble::tibble(gene = "g1", cell_type = "A")),
     class = "cengen_invalid_reference_error"
   )
 })
 
-test_that("new_cengen_reference rejects duplicate (gene, neuron_type) rows", {
+test_that("new_cengen_reference rejects duplicate (gene, cell_type) rows", {
   bad <- tibble::tibble(
-    gene = c("g1", "g1"), neuron_type = c("A", "A"),
+    gene = c("g1", "g1"), cell_type = c("A", "A"),
     avg_expr = c(1, 2), pct_expr = c(10, 20)
   )
   expect_error(new_cengen_reference(bad), class = "cengen_invalid_reference_error")
@@ -15,7 +15,7 @@ test_that("new_cengen_reference rejects duplicate (gene, neuron_type) rows", {
 
 test_that("new_cengen_reference normalizes underscore gene symbols to dashes", {
   data <- tibble::tibble(
-    gene = c("CE7X_3.1", "CE7X_3.1"), neuron_type = c("A", "B"),
+    gene = c("CE7X_3.1", "CE7X_3.1"), cell_type = c("A", "B"),
     avg_expr = c(1, 2), pct_expr = c(10, 20)
   )
   ref <- new_cengen_reference(data)
@@ -45,7 +45,7 @@ test_that("load_cengen_reference and list_cengen_datasets round-trip via a temp 
       stage = "adult", sex = "hermaphrodite",
       dataset_label = "adult hermaphrodite (synthetic)",
       source_version = "test-fixture", date_prepared = "2026-01-01",
-      n_neuron_types = length(unique(data1$neuron_type)),
+      n_cell_types = length(unique(data1$cell_type)),
       n_genes = length(unique(data1$gene))
     )
   )

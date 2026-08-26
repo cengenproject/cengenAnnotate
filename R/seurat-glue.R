@@ -14,7 +14,7 @@
 #' @param include Which `decision` value(s) to write onto the object
 #'   (default `"annotate"` only).
 #' @param metadata_col,score_col Names of the new metadata columns to add,
-#'   holding the matched neuron type and its score respectively.
+#'   holding the matched cell type and its score respectively.
 #' @param overwrite If `FALSE` (default), errors if `metadata_col` already
 #'   exists in `object@meta.data`.
 #'
@@ -35,7 +35,7 @@ write_cengen_annotations <- function(
   }
   assert_has_columns(object@meta.data, cluster_col, "object@meta.data", "cengen_invalid_object_error")
   assert_has_columns(
-    scores, c("cluster", "best_neuron_type", "best_score", "decision"),
+    scores, c("cluster", "best_cell_type", "best_score", "decision"),
     "scores", "cengen_invalid_scores_error"
   )
 
@@ -65,7 +65,7 @@ write_cengen_annotations <- function(
   }
 
   eligible <- scores[scores$decision %in% include, , drop = FALSE]
-  lookup_annotation <- stats::setNames(eligible$best_neuron_type, eligible$cluster)
+  lookup_annotation <- stats::setNames(eligible$best_cell_type, eligible$cluster)
   lookup_score <- stats::setNames(eligible$best_score, eligible$cluster)
 
   annotation <- unname(lookup_annotation[cluster_ids])
