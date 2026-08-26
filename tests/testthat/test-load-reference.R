@@ -13,9 +13,18 @@ test_that("new_cengen_reference rejects duplicate (gene, neuron_type) rows", {
   expect_error(new_cengen_reference(bad), class = "cengen_invalid_reference_error")
 })
 
+test_that("new_cengen_reference normalizes underscore gene symbols to dashes", {
+  data <- tibble::tibble(
+    gene = c("CE7X_3.1", "CE7X_3.1"), neuron_type = c("A", "B"),
+    avg_expr = c(1, 2), pct_expr = c(10, 20)
+  )
+  ref <- new_cengen_reference(data)
+  expect_equal(ref$data$gene, c("CE7X-3.1", "CE7X-3.1"))
+})
+
 test_that("new_cengen_reference precomputes correct per-gene mean/sd", {
   ref <- make_test_reference()
-  spec_a <- ref$gene_stats[ref$gene_stats$gene == "spec_A", ]
+  spec_a <- ref$gene_stats[ref$gene_stats$gene == "spec-A", ] # normalize_gene_symbol() turns "_" into "-"
   expect_equal(spec_a$mu, mean(c(8, 1, 1, 0, 0)), tolerance = 1e-9)
   expect_equal(spec_a$sigma, stats::sd(c(8, 1, 1, 0, 0)), tolerance = 1e-9)
 

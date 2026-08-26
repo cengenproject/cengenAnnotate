@@ -20,7 +20,7 @@ new_cengen_reference <- function(data, meta = list()) {
   )
 
   data <- tibble::as_tibble(data)
-  data$gene <- as.character(data$gene)
+  data$gene <- normalize_gene_symbol(as.character(data$gene))
   data$neuron_type <- as.character(data$neuron_type)
   data$avg_expr <- as.numeric(data$avg_expr)
   data$pct_expr <- as.numeric(data$pct_expr)

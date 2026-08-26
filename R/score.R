@@ -67,6 +67,10 @@ score_cengen_matrix <- function(
   } else {
     prepare_marker_panel(markers, top_n = top_n, cluster_col = cluster_col, gene_col = gene_col)
   }
+  # Normalize unconditionally (idempotent if already normalized by
+  # prepare_marker_panel()) so a pre-built panel handed in directly is held
+  # to the same convention as the reference's gene column.
+  panel$gene <- normalize_gene_symbol(as.character(panel$gene))
 
   neuron_types <- sort(unique(reference$data$neuron_type))
   ref_genes <- unique(reference$gene_stats$gene)

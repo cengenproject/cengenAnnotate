@@ -39,6 +39,7 @@ plot_cengen_dotplot <- function(
   } else {
     prepare_marker_panel(markers, top_n = top_n, cluster_col = cluster_col, gene_col = gene_col)
   }
+  panel$gene <- normalize_gene_symbol(as.character(panel$gene))
 
   cluster <- as.character(cluster)
   cl_panel <- panel[panel$cluster == cluster, , drop = FALSE]

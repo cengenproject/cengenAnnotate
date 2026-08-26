@@ -62,6 +62,15 @@ test_that("duplicate gene rows within a cluster are deduplicated", {
   expect_equal(sum(panel$gene == "g1"), 1)
 })
 
+test_that("gene symbols with underscores are normalized to dashes (Seurat's own feature-name convention)", {
+  raw <- tibble::tribble(
+    ~cluster, ~gene, ~avg_log2FC, ~p_val_adj,
+    "c1", "CE7X_3.1", 3.0, 0.001
+  )
+  panel <- prepare_marker_panel(raw, top_n = 20)
+  expect_equal(panel$gene, "CE7X-3.1")
+})
+
 test_that("missing required columns error informatively", {
   expect_error(
     prepare_marker_panel(tibble::tibble(cluster = "c1", gene = "g1")),

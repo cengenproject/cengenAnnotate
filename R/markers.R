@@ -43,7 +43,7 @@ prepare_marker_panel <- function(
 
   markers <- tibble::as_tibble(markers)
   markers$.cluster <- as.character(markers[[cluster_col]])
-  markers$.gene <- as.character(markers[[gene_col]])
+  markers$.gene <- normalize_gene_symbol(as.character(markers[[gene_col]]))
 
   if (!is.null(avg_log2FC_col) && only_pos) {
     markers <- markers[markers[[avg_log2FC_col]] > 0, , drop = FALSE]

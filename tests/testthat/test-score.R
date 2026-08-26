@@ -120,6 +120,25 @@ test_that("score_cengen_matrix accepts raw marker output and applies top_n/only_
   expect_true(all(observed$n_genes_requested == 2))
 })
 
+test_that("an underscore gene symbol in the reference still matches a Seurat-renamed marker gene", {
+  data <- make_test_reference_data()
+  # add a gene whose "canonical" symbol has an underscore, specific to A,
+  # mirroring how it would appear straight from a source table
+  underscore_gene <- dplyr::mutate(
+    dplyr::filter(data, gene == "spec_A"),
+    gene = "CE7X_3.1"
+  )
+  ref <- new_cengen_reference(dplyr::bind_rows(data, underscore_gene))
+
+  # Seurat itself would have already renamed this to a dash in the Seurat
+  # object's feature names, so that's what FindAllMarkers() would report
+  panel <- make_panel("c1", "CE7X-3.1")
+  observed <- score_cengen_matrix(panel, ref)
+
+  expect_true(all(observed$n_genes_missing_from_reference == 0))
+  expect_equal(observed$neuron_type[which.max(observed$score)], "A")
+})
+
 test_that("score_cengen_matrix scores multiple clusters independently", {
   ref <- make_test_reference()
   panel <- dplyr::bind_rows(
