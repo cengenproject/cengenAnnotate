@@ -3,7 +3,7 @@
 Automates annotation of C. elegans single-cell RNA-seq clusters by
 scoring Seurat cluster marker genes against CeNGEN reference expression
 data. Computes a dot-plot-equivalent coherence score for each candidate
-neuron type from unthresholded expression and percent-expressing values,
+cell type from unthresholded expression and percent-expressing values,
 and classifies clusters as confidently annotatable or in need of manual
 review, replacing the manual workflow of pasting marker genes into the
 CeNGEN website and visually reading the resulting dot plot. Reference

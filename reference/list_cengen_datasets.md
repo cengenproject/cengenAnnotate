@@ -25,5 +25,5 @@ list_cengen_datasets(board = cengen_board(), pattern = NULL)
 ## Value
 
 A tibble with one row per dataset: `name`, `stage`, `sex`,
-`dataset_label`, `source_version`, `date_prepared`, `n_neuron_types`,
+`dataset_label`, `source_version`, `date_prepared`, `n_cell_types`,
 `n_genes`, `version`, `created`.

@@ -16,9 +16,9 @@ new_cengen_reference(data, meta = list())
 
 - data:
 
-  A data frame with columns `gene`, `neuron_type`, `avg_expr`
+  A data frame with columns `gene`, `cell_type`, `avg_expr`
   (unthresholded average expression level) and `pct_expr` (percent of
-  cells of that neuron type expressing the gene, on a 0-100 scale).
+  cells of that cell type expressing the gene, on a 0-100 scale).
 
 - meta:
 

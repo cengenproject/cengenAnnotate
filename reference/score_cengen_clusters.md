@@ -1,13 +1,13 @@
-# Score and classify clusters against CeNGEN neuron types
+# Score and classify clusters against CeNGEN cell types
 
 Convenience wrapper that runs
 [`score_cengen_matrix()`](https://cengenproject.github.io/cengenAnnotate/reference/score_cengen_matrix.md)
 followed by
 [`classify_cengen_matches()`](https://cengenproject.github.io/cengenAnnotate/reference/classify_cengen_matches.md),
-and attaches the full cluster x neuron-type score matrix to the result
+and attaches the full cluster x cell-type score matrix to the result
 (retrieve it with
 [`cengen_matrix()`](https://cengenproject.github.io/cengenAnnotate/reference/cengen_matrix.md))
-for drilling into all candidate neuron types beyond the top 2.
+for drilling into all candidate cell types beyond the top 2.
 
 ## Usage
 
@@ -53,7 +53,7 @@ score_cengen_clusters(
 - min_pct_expr:
 
   Minimum percent-expressing (0-100) for a gene to count as "covered" in
-  a neuron type; below this, coverage is 0.
+  a cell type; below this, coverage is 0.
 
 - combine:
 

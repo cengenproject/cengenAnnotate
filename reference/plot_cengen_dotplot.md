@@ -1,9 +1,9 @@
 # Plot a CeNGEN-style dot plot for one cluster's marker panel
 
 Reproduces the view the CeNGEN website would show for a cluster's marker
-gene panel, restricted to a shortlist of candidate neuron types, using
-the same signals the coherence score is built from: dot size is percent
-of cells expressing (coverage), dot color is the per-gene z-score
+gene panel, restricted to a shortlist of candidate cell types, using the
+same signals the coherence score is built from: dot size is percent of
+cells expressing (coverage), dot color is the per-gene z-score
 (specificity). Useful for visually inspecting `"review_ambiguous"`
 clusters, or for sanity-checking an `"annotate"` call.
 
@@ -15,8 +15,8 @@ plot_cengen_dotplot(
   markers,
   cluster,
   scores = NULL,
-  neuron_types = NULL,
-  top_n_neuron_types = 8,
+  cell_types = NULL,
+  top_n_cell_types = 8,
   top_n = 20,
   cluster_col = "cluster",
   gene_col = "gene"
@@ -43,17 +43,17 @@ plot_cengen_dotplot(
 
   Optional `cengen_scores` object (from
   [`score_cengen_clusters()`](https://cengenproject.github.io/cengenAnnotate/reference/score_cengen_clusters.md));
-  if supplied and `neuron_types` is not, the top `top_n_neuron_types`
+  if supplied and `cell_types` is not, the top `top_n_cell_types`
   candidates for `cluster` are plotted.
 
-- neuron_types:
+- cell_types:
 
-  Optional explicit vector of neuron types to plot. Required if `scores`
+  Optional explicit vector of cell types to plot. Required if `scores`
   is not supplied.
 
-- top_n_neuron_types:
+- top_n_cell_types:
 
-  Number of top-scoring neuron types to plot when deriving the shortlist
+  Number of top-scoring cell types to plot when deriving the shortlist
   from `scores` (default 8).
 
 - top_n, cluster_col, gene_col:

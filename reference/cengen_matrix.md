@@ -1,4 +1,4 @@
-# Get the full cluster x neuron-type score matrix
+# Get the full cluster x cell-type score matrix
 
 Retrieves the score matrix attached to a `cengen_scores` object by
 [`score_cengen_clusters()`](https://cengenproject.github.io/cengenAnnotate/reference/score_cengen_clusters.md).

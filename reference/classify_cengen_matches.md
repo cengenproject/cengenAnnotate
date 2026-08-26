@@ -1,10 +1,10 @@
 # Classify clusters as annotatable or in need of review
 
-Applies the cutoff/gap decision rule to a cluster x neuron-type score
+Applies the cutoff/gap decision rule to a cluster x cell-type score
 matrix (from
 [`score_cengen_matrix()`](https://cengenproject.github.io/cengenAnnotate/reference/score_cengen_matrix.md)),
-reducing each cluster to its best and second-best matching neuron type
-and a decision.
+reducing each cluster to its best and second-best matching cell type and
+a decision.
 
 ## Usage
 
@@ -40,10 +40,11 @@ classify_cengen_matches(
 
 ## Value
 
-A tibble with one row per cluster: `cluster`, `best_neuron_type`,
-`best_score`, `second_neuron_type`, `second_score`, `gap`,
-`n_genes_used`, `n_genes_requested`, `n_genes_missing_from_reference`,
-`n_genes_uninformative`, `decision`.
+A tibble with one row per cluster: `cluster`, `best_cell_type`,
+`best_score`, `second_cell_type`, `second_score`, `gap`, `n_genes_used`,
+`n_genes_requested`, `n_genes_missing_from_reference`,
+`n_genes_uninformative`, `decision`. Sorted by `best_score` descending
+(most confident cluster first), not by input cluster order.
 
 ## Details
 
@@ -54,7 +55,7 @@ Decision priority, evaluated in order:
     match).
 
 2.  Else if `best_score >= cutoff` AND `gap >= min_gap`: `"annotate"`
-    (one neuron type stands out clearly).
+    (one cell type stands out clearly).
 
 3.  Otherwise: `"review_ambiguous"` (either no candidate scores high
     enough, or more than one candidate is plausible).

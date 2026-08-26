@@ -44,7 +44,7 @@ write_cengen_annotations(
 
 - metadata_col, score_col:
 
-  Names of the new metadata columns to add, holding the matched neuron
+  Names of the new metadata columns to add, holding the matched cell
   type and its score respectively.
 
 - overwrite:

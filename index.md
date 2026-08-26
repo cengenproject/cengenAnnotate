@@ -5,10 +5,10 @@ single-cell data using [CeNGEN](https://www.cengen.org) reference
 expression data. It replaces the manual workflow of copying marker genes
 into the CeNGEN website, reading the resulting dot plot by eye, and
 judging whether a cluster’s marker panel points to a single coherent
-neuron type.
+cell type.
 
 `cengenAnnotate` computes a “dot-plot-mirrored coherence score” for
-every (cluster, candidate neuron type) pair directly from CeNGEN’s
+every (cluster, candidate cell type) pair directly from CeNGEN’s
 unthresholded expression data (the same average-expression and
 percent-expressing values a dot plot encodes as color and size), then
 classifies each cluster as confidently annotatable or in need of manual
@@ -37,7 +37,7 @@ markers <- FindAllMarkers(seurat_obj, only.pos = TRUE)
 list_cengen_datasets()
 reference <- load_cengen_reference("adult_herm")
 
-# 3. Score every cluster against every candidate neuron type
+# 3. Score every cluster against every candidate cell type
 result <- score_cengen_clusters(markers, reference)
 result
 

@@ -21,10 +21,10 @@ usually means: run
 [`Seurat::FindAllMarkers()`](https://satijalab.org/seurat/reference/FindAllMarkers.html),
 copy the top ~20 marker genes for a cluster, paste them into the CeNGEN
 website, and visually judge whether the resulting dot plot shows one
-neuron type standing out. `cengenAnnotate` computes that judgment
-directly from CeNGEN’s reference expression data, so most clusters can
-be annotated automatically and only the genuinely ambiguous ones come
-back for manual review.
+cell type standing out. `cengenAnnotate` computes that judgment directly
+from CeNGEN’s reference expression data, so most clusters can be
+annotated automatically and only the genuinely ambiguous ones come back
+for manual review.
 
 This vignette builds a small **synthetic** reference dataset so it runs
 offline and reproducibly. In real use, you’ll fetch reference data from
@@ -33,7 +33,7 @@ the CeNGEN pins board with \[list_cengen_datasets()\] and
 
 ## 1. A CeNGEN reference object
 
-A reference is a long table of `gene`, `neuron_type`, `avg_expr`
+A reference is a long table of `gene`, `cell_type`, `avg_expr`
 (unthresholded average expression) and `pct_expr` (percent of cells of
 that type expressing the gene) — the same two quantities a CeNGEN dot
 plot encodes as color and size.
@@ -41,14 +41,14 @@ plot encodes as color and size.
 ``` r
 
 set.seed(1)
-neuron_types <- paste0("N", 1:6)
+cell_types <- paste0("N", 1:6)
 
 make_gene <- function(gene, specific_to, base = 0, high = 8, cov_high = 90, cov_low = 15) {
   tibble(
     gene = gene,
-    neuron_type = neuron_types,
-    avg_expr = ifelse(neuron_types == specific_to, high, base),
-    pct_expr = ifelse(neuron_types == specific_to, cov_high, cov_low)
+    cell_type = cell_types,
+    avg_expr = ifelse(cell_types == specific_to, high, base),
+    pct_expr = ifelse(cell_types == specific_to, cov_high, cov_low)
   )
 }
 
@@ -68,7 +68,7 @@ reference
 #>   sex:     demo
 #>   label:   synthetic demo reference
 #>   prepared: ?
-#>   genes: 8, neuron types: 6
+#>   genes: 8, cell types: 6
 ```
 
 ## 2. Marker genes from Seurat
@@ -109,7 +109,7 @@ prepare_marker_panel(markers, top_n = 20)
 ## 3. Scoring and classification
 
 [`score_cengen_clusters()`](https://cengenproject.github.io/cengenAnnotate/reference/score_cengen_clusters.md)
-scores every cluster against every candidate neuron type and classifies
+scores every cluster against every candidate cell type and classifies
 each as `"annotate"` or in need of review.
 
 ``` r
@@ -120,38 +120,38 @@ result <- score_cengen_clusters(
 )
 result
 #> # A tibble: 3 × 11
-#>   cluster best_neuron_type best_score second_neuron_type second_score   gap
-#>   <chr>   <chr>                 <dbl> <chr>                     <dbl> <dbl>
-#> 1 0       N1                    0.892 N2                        0.245 0.648
-#> 2 1       N2                    0.892 N1                        0.245 0.648
-#> 3 2       N3                    0.892 N1                        0.245 0.648
+#>   cluster best_cell_type best_score second_cell_type second_score   gap
+#>   <chr>   <chr>               <dbl> <chr>                   <dbl> <dbl>
+#> 1 0       N1                  0.892 N2                      0.245 0.648
+#> 2 1       N2                  0.892 N1                      0.245 0.648
+#> 3 2       N3                  0.892 N1                      0.245 0.648
 #> # ℹ 5 more variables: n_genes_used <int>, n_genes_requested <dbl>,
 #> #   n_genes_missing_from_reference <int>, n_genes_uninformative <int>,
 #> #   decision <chr>
 ```
 
-`"annotate"` clusters have one neuron type that’s both well-covered and
+`"annotate"` clusters have one cell type that’s both well-covered and
 specific across the marker panel; clusters below the score/gap cutoffs,
 or with too few usable marker genes, come back as `"review_ambiguous"` /
 `"review_insufficient_markers"` for manual follow-up instead.
 
-The full cluster x neuron-type matrix (not just the top 2 candidates) is
+The full cluster x cell-type matrix (not just the top 2 candidates) is
 attached to the result:
 
 ``` r
 
 cengen_matrix(result) |> filter(cluster == "0") |> arrange(desc(score))
 #> # A tibble: 6 × 7
-#>   cluster neuron_type score n_genes_used n_genes_requested
-#>   <chr>   <chr>       <dbl>        <int>             <dbl>
-#> 1 0       N1          0.892            3                 3
-#> 2 0       N2          0.245            3                 3
-#> 3 0       N3          0.245            3                 3
-#> 4 0       N4          0.245            3                 3
-#> 5 0       N5          0.245            3                 3
-#> 6 0       N6          0.245            3                 3
-#> # ℹ 2 more variables: n_genes_missing_from_reference <int>,
-#> #   n_genes_uninformative <int>
+#>   cluster cell_type score n_genes_used n_genes_requested n_genes_missing_from_…¹
+#>   <chr>   <chr>     <dbl>        <int>             <dbl>                   <int>
+#> 1 0       N1        0.892            3                 3                       0
+#> 2 0       N2        0.245            3                 3                       0
+#> 3 0       N3        0.245            3                 3                       0
+#> 4 0       N4        0.245            3                 3                       0
+#> 5 0       N5        0.245            3                 3                       0
+#> 6 0       N6        0.245            3                 3                       0
+#> # ℹ abbreviated name: ¹​n_genes_missing_from_reference
+#> # ℹ 1 more variable: n_genes_uninformative <int>
 ```
 
 ## 4. Writing annotations back onto a Seurat object
@@ -188,7 +188,7 @@ the same size/color signals the score is built from:
 
 ``` r
 
-plot_cengen_dotplot(reference, markers, cluster = "0", scores = result, top_n_neuron_types = 4)
+plot_cengen_dotplot(reference, markers, cluster = "0", scores = result, top_n_cell_types = 4)
 ```
 
 ![](cengenAnnotate_files/figure-html/unnamed-chunk-7-1.png)

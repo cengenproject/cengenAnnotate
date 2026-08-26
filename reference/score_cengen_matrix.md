@@ -1,11 +1,11 @@
-# Score clusters against every candidate CeNGEN neuron type
+# Score clusters against every candidate CeNGEN cell type
 
-Computes a "dot-plot-mirrored coherence score" for each (cluster, neuron
+Computes a "dot-plot-mirrored coherence score" for each (cluster, cell
 type) pair: how consistently the cluster's marker gene panel is both
 highly expressed (coverage, mirroring dot *size*) and specific
-(mirroring dot *color*) in that neuron type, relative to CeNGEN's other
-neuron types. This is the computational equivalent of visually judging
-whether a CeNGEN dot plot shows one neuron type standing out.
+(mirroring dot *color*) in that cell type, relative to CeNGEN's other
+cell types. This is the computational equivalent of visually judging
+whether a CeNGEN dot plot shows one cell type standing out.
 
 ## Usage
 
@@ -48,7 +48,7 @@ score_cengen_matrix(
 - min_pct_expr:
 
   Minimum percent-expressing (0-100) for a gene to count as "covered" in
-  a neuron type; below this, coverage is 0.
+  a cell type; below this, coverage is 0.
 
 - combine:
 
@@ -62,19 +62,19 @@ score_cengen_matrix(
 
 ## Value
 
-A long tibble with columns `cluster`, `neuron_type`, `score`,
+A long tibble with columns `cluster`, `cell_type`, `score`,
 `n_genes_used`, `n_genes_requested`, `n_genes_missing_from_reference`,
 `n_genes_uninformative`.
 
 ## Details
 
-For each gene `g` and neuron type `t`:
+For each gene `g` and cell type `t`:
 
 - `cov(g,t) = 0` if `pct_expr(g,t) < min_pct_expr`, else
   `pct_expr(g,t) / 100`.
 
 - `z(g,t) = (avg_expr(g,t) - mu_g) / sigma_g`, where `mu_g`/`sigma_g`
-  are gene `g`'s mean/sd of `avg_expr` across all neuron types.
+  are gene `g`'s mean/sd of `avg_expr` across all cell types.
   `spec(g,t) = plogis(z(g,t))`.
 
 - `s(g,t)` combines the two: for `combine = "geometric"` (default),
@@ -82,7 +82,7 @@ For each gene `g` and neuron type `t`:
   to be non-trivial simultaneously); for `"arithmetic"`,
   `cov_weight * cov(g,t) + spec_weight * spec(g,t)`.
 
-The cluster-level score for neuron type `t` is the mean of `s(g,t)` over
+The cluster-level score for cell type `t` is the mean of `s(g,t)` over
 the cluster's usable marker genes. Genes absent from the reference, or
-with near-zero variance across neuron types (uninformative), are
-excluded from scoring and tallied in the diagnostic columns.
+with near-zero variance across cell types (uninformative), are excluded
+from scoring and tallied in the diagnostic columns.
