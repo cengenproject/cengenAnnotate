@@ -94,34 +94,84 @@ likely to need the targeted reclustering in step 5.
 If you only care about one class of cells (this protocol was developed
 annotating neurons out of whole-animal data), don't try to score every
 cluster in the whole dataset against a neuron-only reference. Subset
-first.
+first — and do the classification at the **cluster** level, using the
+clusters from step 2, not per-cell.
 
 The pitfall: picking a single marker gene to threshold on. **No single
-gene is expressed in every cell of a given type** — pick a gene that's
-strong in most neuron types and you will still cleanly lose whichever
-types happen to express it weakly. Use a small panel of independent
-markers instead, and count a cell as "in" if it clears the expression
-threshold on *any* one of them (OR logic), not all of them:
+gene is expressed in every cell type in the class you're after** — pick
+a gene that's strong in most neuron types and you will still cleanly
+lose whichever types happen to express it weakly. A panel fixes this,
+but only if it's built to fix exactly that failure mode: for each
+candidate gene, look at its *worst* covered target cell type, not its
+average. Build the panel by greedy set-cover against the CeNGEN
+reference — repeatedly find the target cell type the current panel
+covers worst, and add whichever candidate gene rescues that specific
+type the most, until coverage stops improving:
 
 ```{r}
-# Broadly-expressed, largely-independent pan-neuronal markers -- panel,
-# not singleton, specifically so that no one neuron type is missed
-# because it happens to be low for any single gene.
-pan_neuronal_panel <- c("unc-10", "rab-3", "ric-4", "sbt-1", "ehs-1")
+# `reference` is the same cengen_reference used for scoring in step 5.
+# `target_types` is every CeNGEN cell type in the class you're
+# subsetting to (e.g. every neuron type); `candidate_pool` is every gene
+# worth considering (e.g. neuropeptide/synaptic genes for neurons) --
+# restrict this so the greedy search doesn't just rediscover one
+# ubiquitously-expressed housekeeping gene.
+coverage_for_panel <- function(panel) {
+  reference$data |>
+    dplyr::filter(gene %in% panel, cell_type %in% target_types) |>
+    dplyr::group_by(cell_type) |>
+    dplyr::summarise(coverage = max(pct_expr), .groups = "drop")
+}
 
-expr <- Seurat::GetAssayData(obj, layer = "data")[pan_neuronal_panel, ]
-is_neuronal <- Matrix::colSums(expr > 0) >= 1  # expresses at least one panel gene
-
-neurons <- subset(obj, cells = colnames(obj)[is_neuronal])
+panel <- character(0)
+repeat {
+  cov <- coverage_for_panel(panel)
+  worst <- cov[which.min(cov$coverage), ]
+  # every target type already well covered -- or no candidate improves
+  # the worst point any further -- stop
+  candidates <- reference$data |>
+    dplyr::filter(gene %in% candidate_pool, !gene %in% panel, cell_type == worst$cell_type) |>
+    dplyr::arrange(dplyr::desc(pct_expr))
+  if (nrow(cov) > 0 && nrow(candidates) > 0 && candidates$pct_expr[1] > worst$coverage) {
+    panel <- c(panel, candidates$gene[1])
+  } else {
+    break
+  }
+}
 ```
 
-Before trusting a panel like this, check it against a reference where
-cell identity is already known (e.g. an existing annotated CeNGEN
-dataset covering the same stage): compute the panel score for every
-*known* cell type and confirm there's a sharp break between the
-lowest-scoring true-positive type and the highest-scoring true-negative
-type. If the break is sharp, a simple threshold is trustworthy; if it's
-gradual, the panel needs another gene, not a fiddled threshold.
+Then classify each existing cluster as in-class if *any* panel gene is
+detected in a high enough fraction of that cluster's cells (OR logic
+across genes, applied per cluster — not a per-cell "expresses at least
+one panel gene" filter, which is far noisier given single-cell dropout):
+
+```{r}
+panel_present <- intersect(panel, rownames(obj))
+pos_mat <- Seurat::FetchData(obj, vars = panel_present, layer = "counts") > 0
+pct_by_cluster <- sapply(panel_present, function(g) {
+  tapply(pos_mat[, g], obj$seurat_clusters, mean) * 100
+})
+max_pct <- apply(pct_by_cluster, 1, max)
+
+target_clusters <- names(max_pct)[max_pct >= 65]  # see below for where 65 comes from
+neurons <- subset(obj, subset = seurat_clusters %in% target_clusters)
+```
+
+Before trusting a threshold like the 65% above, check it against the
+reference: compute each *known* target cell type's best coverage under
+the finished panel (the same `coverage_for_panel()` from the build step)
+and each known non-target cell type's best coverage, and confirm there's
+a sharp break between the lowest-covered true-positive type and the
+highest-covered true-negative type. Pick the threshold in that gap. If
+the break is sharp, a simple threshold is trustworthy; if it's gradual,
+the panel needs another gene (go back to the greedy step), not a fiddled
+threshold. The 22-gene panel this protocol validated for C. elegans
+neurons (built from CeNGEN's neuropeptide/synaptic-gene reference data)
+was `sbt-1, K02F2.5, T27C4.1, Y44A6D.2, pghm-1, snt-4, ric-4, cpx-1,
+egl-21, cla-1, Y23H5B.1, Y39A1A.27, unc-129, nlp-3, nlp-62, nlp-58,
+R102.2, acbp-6, twk-49, F14B6.2, ntc-1, R74.10`, with a 65%-coverage
+threshold — reusable as a starting point for other C. elegans datasets,
+but still worth re-checking the gap on your own data rather than trusted
+blindly.
 
 ## 4. Recluster the subset
 
