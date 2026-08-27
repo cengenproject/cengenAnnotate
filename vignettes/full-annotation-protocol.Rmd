@@ -51,25 +51,33 @@ obj[["percent.mt"]] <- Seurat::PercentageFeatureSet(obj, pattern = "^MT-")
 obj <- subset(obj, subset = nFeature_RNA > 200 & nFeature_RNA < 6000 & percent.mt < 10)
 ```
 
-**Doublet detection is not part of this protocol.** It's a reasonable
-thing to add — some of the ambiguous "blob" clusters described in step 5
-have expression profiles consistent with doublets — but it wasn't
-validated as part of this pipeline. If you skip it (as both reference
-runs of this protocol did), be aware that heterogeneous clusters with
-otherwise-normal QC metrics may be doublets rather than genuine
-ambiguity, and a doublet-detection step (e.g. `scDblFinder`,
-`DoubletFinder`) run before clustering would be the natural place to add
-it if it becomes a problem for your data.
+**Doublet detection is optional QC hygiene, not a validated fix for
+ambiguous clusters.** Some of the ambiguous "blob" clusters described in
+step 5 do have expression profiles consistent with doublets (elevated
+`nCount`/`nFeature`, lower `percent.mt`, concentrated in a handful of
+specific clusters rather than spread evenly) — but when this was tested
+directly, removing those cells and re-scoring left 14 of 15 affected
+clusters' `cengenAnnotate` calls completely unchanged, and made the 15th
+slightly worse (most likely just a smaller-sample-size effect, not a
+real one). So: worth running for its own sake, but don't expect it to
+resolve ambiguous calls on its own.
+
+```{r}
+sce <- scDblFinder::scDblFinder(Seurat::GetAssayData(obj, layer = "counts"))
+obj$is_doublet <- sce$scDblFinder.class == "doublet"
+obj <- subset(obj, subset = !is_doublet)
+```
 
 ## 2. Normalize, scale, cluster, visualize
 
+`Seurat::SCTransform()` is the modern replacement for the
+`NormalizeData()` / `FindVariableFeatures()` / `ScaleData()` sequence —
+it regresses out sequencing depth as part of its own regularized model,
+and takes `percent.mt` as an explicit covariate to regress out too
+(depth alone doesn't remove a mitochondrial-fraction effect):
+
 ```{r}
-obj <- Seurat::NormalizeData(obj)
-obj <- Seurat::FindVariableFeatures(obj)
-# Scale only the HVGs, not all genes -- scaling every gene on a
-# whole-animal object is a common cause of memory blowups and buys
-# nothing downstream, since PCA only uses the HVGs anyway.
-obj <- Seurat::ScaleData(obj, features = Seurat::VariableFeatures(obj))
+obj <- Seurat::SCTransform(obj, vars.to.regress = "percent.mt")
 obj <- Seurat::RunPCA(obj)
 obj <- Seurat::FindNeighbors(obj, dims = 1:30)
 
@@ -83,6 +91,15 @@ obj <- Seurat::FindClusters(obj, algorithm = 1)
 obj <- Seurat::RunUMAP(obj, dims = 1:30)
 Seurat::DimPlot(obj, label = TRUE)
 ```
+
+**A caveat on switching to `SCTransform()`:** every threshold elsewhere
+in this protocol — the 65%-coverage neuron-panel cutoff in step 3, the
+clustering resolution target in step 4, and `cengenAnnotate`'s own
+`cutoff`/`min_gap` defaults — was tuned against the classic
+`NormalizeData`/`ScaleData` pipeline, not against `SCTransform()` output.
+Switching normalization methods can shift cluster boundaries and marker
+gene rankings, so re-check those thresholds (the same way described in
+step 3) rather than assuming they carry over unchanged.
 
 Look at the UMAP before going further. Clusters that are visually diffuse,
 span multiple separated islands, or sit in a long "smear" between two
@@ -182,8 +199,7 @@ the embedding. Redo variable features, scaling, PCA, and clustering on
 the subset from scratch, typically at higher `resolution`:
 
 ```{r}
-neurons <- Seurat::FindVariableFeatures(neurons)
-neurons <- Seurat::ScaleData(neurons, features = Seurat::VariableFeatures(neurons))
+neurons <- Seurat::SCTransform(neurons, vars.to.regress = "percent.mt")
 neurons <- Seurat::RunPCA(neurons)
 neurons <- Seurat::FindNeighbors(neurons, dims = 1:30)
 neurons <- Seurat::FindClusters(neurons, resolution = 4)
@@ -197,7 +213,12 @@ This is the part `cengenAnnotate` automates directly.
 ```{r}
 library(cengenAnnotate)
 
-markers <- Seurat::FindAllMarkers(neurons, only.pos = TRUE)
+# SCT-normalized counts need PrepSCTFindMarkers() first, so fold changes
+# are comparable across cells that got different depth corrections --
+# skip this line if you stuck with the classic NormalizeData()/ScaleData()
+# pipeline instead of SCTransform() in steps 2/4.
+neurons <- Seurat::PrepSCTFindMarkers(neurons)
+markers <- Seurat::FindAllMarkers(neurons, assay = "SCT", only.pos = TRUE)
 reference <- load_cengen_reference("L4_herm")  # match developmental stage/sex where possible
 
 result <- score_cengen_clusters(markers, reference)
