@@ -155,31 +155,78 @@ the ones most likely to need the targeted reclustering in step 5.</p>
 <p>If you only care about one class of cells (this protocol was
 developed annotating neurons out of whole-animal data), don’t try to
 score every cluster in the whole dataset against a neuron-only
-reference. Subset first.</p>
+reference. Subset first — and do the classification at the
+<strong>cluster</strong> level, using the clusters from step 2, not
+per-cell.</p>
 <p>The pitfall: picking a single marker gene to threshold on. <strong>No
-single gene is expressed in every cell of a given type</strong> — pick a
-gene that’s strong in most neuron types and you will still cleanly lose
-whichever types happen to express it weakly. Use a small panel of
-independent markers instead, and count a cell as “in” if it clears the
-expression threshold on <em>any</em> one of them (OR logic), not all of
-them:</p>
+single gene is expressed in every cell type in the class you’re
+after</strong> — pick a gene that’s strong in most neuron types and you
+will still cleanly lose whichever types happen to express it weakly. A
+panel fixes this, but only if it’s built to fix exactly that failure
+mode: for each candidate gene, look at its <em>worst</em> covered target
+cell type, not its average. Build the panel by greedy set-cover against
+the CeNGEN reference — repeatedly find the target cell type the current
+panel covers worst, and add whichever candidate gene rescues that
+specific type the most, until coverage stops improving:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Broadly-expressed, largely-independent pan-neuronal markers -- panel,</span></span>
-<span><span class="co"># not singleton, specifically so that no one neuron type is missed</span></span>
-<span><span class="co"># because it happens to be low for any single gene.</span></span>
-<span><span class="va">pan_neuronal_panel</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"unc-10"</span>, <span class="st">"rab-3"</span>, <span class="st">"ric-4"</span>, <span class="st">"sbt-1"</span>, <span class="st">"ehs-1"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="co"># `reference` is the same cengen_reference used for scoring in step 5.</span></span>
+<span><span class="co"># `target_types` is every CeNGEN cell type in the class you're</span></span>
+<span><span class="co"># subsetting to (e.g. every neuron type); `candidate_pool` is every gene</span></span>
+<span><span class="co"># worth considering (e.g. neuropeptide/synaptic genes for neurons) --</span></span>
+<span><span class="co"># restrict this so the greedy search doesn't just rediscover one</span></span>
+<span><span class="co"># ubiquitously-expressed housekeeping gene.</span></span>
+<span><span class="va">coverage_for_panel</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">panel</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">reference</span><span class="op">$</span><span class="va">data</span> <span class="op">|&gt;</span></span>
+<span>    <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">gene</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">panel</span>, <span class="va">cell_type</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">target_types</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>    <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">cell_type</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>    <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span>coverage <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">pct_expr</span><span class="op">)</span>, .groups <span class="op">=</span> <span class="st">"drop"</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
 <span></span>
-<span><span class="va">expr</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.github.io/seurat-object/reference/AssayData.html" class="external-link">GetAssayData</a></span><span class="op">(</span><span class="va">obj</span>, layer <span class="op">=</span> <span class="st">"data"</span><span class="op">)</span><span class="op">[</span><span class="va">pan_neuronal_panel</span>, <span class="op">]</span></span>
-<span><span class="va">is_neuronal</span> <span class="op">&lt;-</span> <span class="fu">Matrix</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/Matrix/man/colSums-methods.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">expr</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">)</span> <span class="op">&gt;=</span> <span class="fl">1</span>  <span class="co"># expresses at least one panel gene</span></span>
+<span><span class="va">panel</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span></span>
+<span><span class="kw">repeat</span> <span class="op">{</span></span>
+<span>  <span class="va">cov</span> <span class="op">&lt;-</span> <span class="fu">coverage_for_panel</span><span class="op">(</span><span class="va">panel</span><span class="op">)</span></span>
+<span>  <span class="va">worst</span> <span class="op">&lt;-</span> <span class="va">cov</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.min.html" class="external-link">which.min</a></span><span class="op">(</span><span class="va">cov</span><span class="op">$</span><span class="va">coverage</span><span class="op">)</span>, <span class="op">]</span></span>
+<span>  <span class="co"># every target type already well covered -- or no candidate improves</span></span>
+<span>  <span class="co"># the worst point any further -- stop</span></span>
+<span>  <span class="va">candidates</span> <span class="op">&lt;-</span> <span class="va">reference</span><span class="op">$</span><span class="va">data</span> <span class="op">|&gt;</span></span>
+<span>    <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">gene</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">candidate_pool</span>, <span class="op">!</span><span class="va">gene</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">panel</span>, <span class="va">cell_type</span> <span class="op">==</span> <span class="va">worst</span><span class="op">$</span><span class="va">cell_type</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>    <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html" class="external-link">arrange</a></span><span class="op">(</span><span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/desc.html" class="external-link">desc</a></span><span class="op">(</span><span class="va">pct_expr</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">cov</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0</span> <span class="op">&amp;&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">candidates</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0</span> <span class="op">&amp;&amp;</span> <span class="va">candidates</span><span class="op">$</span><span class="va">pct_expr</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span> <span class="op">&gt;</span> <span class="va">worst</span><span class="op">$</span><span class="va">coverage</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">panel</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">panel</span>, <span class="va">candidates</span><span class="op">$</span><span class="va">gene</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
+<span>  <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span>    <span class="kw">break</span></span>
+<span>  <span class="op">}</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+<p>Then classify each existing cluster as in-class if <em>any</em> panel
+gene is detected in a high enough fraction of that cluster’s cells (OR
+logic across genes, applied per cluster — not a per-cell “expresses at
+least one panel gene” filter, which is far noisier given single-cell
+dropout):</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">panel_present</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">intersect</a></span><span class="op">(</span><span class="va">panel</span>, <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">obj</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">pos_mat</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.github.io/seurat-object/reference/FetchData.html" class="external-link">FetchData</a></span><span class="op">(</span><span class="va">obj</span>, vars <span class="op">=</span> <span class="va">panel_present</span>, layer <span class="op">=</span> <span class="st">"counts"</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0</span></span>
+<span><span class="va">pct_by_cluster</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">panel_present</span>, <span class="kw">function</span><span class="op">(</span><span class="va">g</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="va">pos_mat</span><span class="op">[</span>, <span class="va">g</span><span class="op">]</span>, <span class="va">obj</span><span class="op">$</span><span class="va">seurat_clusters</span>, <span class="va">mean</span><span class="op">)</span> <span class="op">*</span> <span class="fl">100</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span><span class="va">max_pct</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">pct_by_cluster</span>, <span class="fl">1</span>, <span class="va">max</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">neurons</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="va">obj</span>, cells <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">obj</span><span class="op">)</span><span class="op">[</span><span class="va">is_neuronal</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
-<p>Before trusting a panel like this, check it against a reference where
-cell identity is already known (e.g. an existing annotated CeNGEN
-dataset covering the same stage): compute the panel score for every
-<em>known</em> cell type and confirm there’s a sharp break between the
-lowest-scoring true-positive type and the highest-scoring true-negative
-type. If the break is sharp, a simple threshold is trustworthy; if it’s
-gradual, the panel needs another gene, not a fiddled threshold.</p>
+<span><span class="va">target_clusters</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">max_pct</span><span class="op">)</span><span class="op">[</span><span class="va">max_pct</span> <span class="op">&gt;=</span> <span class="fl">65</span><span class="op">]</span>  <span class="co"># see below for where 65 comes from</span></span>
+<span><span class="va">neurons</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="va">obj</span>, subset <span class="op">=</span> <span class="va">seurat_clusters</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">target_clusters</span><span class="op">)</span></span></code></pre></div>
+<p>Before trusting a threshold like the 65% above, check it against the
+reference: compute each <em>known</em> target cell type’s best coverage
+under the finished panel (the same <code>coverage_for_panel()</code>
+from the build step) and each known non-target cell type’s best
+coverage, and confirm there’s a sharp break between the lowest-covered
+true-positive type and the highest-covered true-negative type. Pick the
+threshold in that gap. If the break is sharp, a simple threshold is
+trustworthy; if it’s gradual, the panel needs another gene (go back to
+the greedy step), not a fiddled threshold. The 22-gene panel this
+protocol validated for C. elegans neurons (built from CeNGEN’s
+neuropeptide/synaptic-gene reference data) was
+<code>sbt-1, K02F2.5, T27C4.1, Y44A6D.2, pghm-1, snt-4, ric-4, cpx-1, egl-21, cla-1, Y23H5B.1, Y39A1A.27, unc-129, nlp-3, nlp-62, nlp-58, R102.2, acbp-6, twk-49, F14B6.2, ntc-1, R74.10</code>,
+with a 65%-coverage threshold — reusable as a starting point for other
+C. elegans datasets, but still worth re-checking the gap on your own
+data rather than trusted blindly.</p>
 </div>
 <div class="section level2">
 <h2 id="recluster-the-subset">4. Recluster the subset<a class="anchor" aria-label="anchor" href="#recluster-the-subset"></a>
@@ -190,7 +237,7 @@ the full dataset usually needs finer resolution once it’s the only thing
 in the embedding. Redo variable features, scaling, PCA, and clustering
 on the subset from scratch, typically at higher
 <code>resolution</code>:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">neurons</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/FindVariableFeatures.html" class="external-link">FindVariableFeatures</a></span><span class="op">(</span><span class="va">neurons</span><span class="op">)</span></span>
 <span><span class="va">neurons</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/ScaleData.html" class="external-link">ScaleData</a></span><span class="op">(</span><span class="va">neurons</span>, features <span class="op">=</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.github.io/seurat-object/reference/VariableFeatures.html" class="external-link">VariableFeatures</a></span><span class="op">(</span><span class="va">neurons</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">neurons</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/RunPCA.html" class="external-link">RunPCA</a></span><span class="op">(</span><span class="va">neurons</span><span class="op">)</span></span>
@@ -202,7 +249,7 @@ on the subset from scratch, typically at higher
 <h2 id="score-clusters-against-cengen">5. Score clusters against CeNGEN<a class="anchor" aria-label="anchor" href="#score-clusters-against-cengen"></a>
 </h2>
 <p>This is the part <code>cengenAnnotate</code> automates directly.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/cengenproject/cengenAnnotate" class="external-link">cengenAnnotate</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">markers</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/FindAllMarkers.html" class="external-link">FindAllMarkers</a></span><span class="op">(</span><span class="va">neurons</span>, only.pos <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
@@ -215,7 +262,7 @@ on the subset from scratch, typically at higher
 <code>"review_insufficient_markers"</code>. Inspect the ones sent to
 review with the full cluster x cell-type matrix and the QC dot plot
 before deciding what to do with them:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/cengen_matrix.html">cengen_matrix</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">cluster</span> <span class="op">==</span> <span class="st">"12"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html" class="external-link">arrange</a></span><span class="op">(</span><span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/desc.html" class="external-link">desc</a></span><span class="op">(</span><span class="va">score</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/plot_cengen_dotplot.html">plot_cengen_dotplot</a></span><span class="op">(</span><span class="va">reference</span>, <span class="va">markers</span>, cluster <span class="op">=</span> <span class="st">"12"</span>, scores <span class="op">=</span> <span class="va">result</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -227,7 +274,7 @@ subset just that cluster (or a small group of adjacent,
 similarly-ambiguous clusters — “blobs” that touch or overlap on the
 UMAP) and recluster it alone at higher resolution, then re-score just
 the new sub-clusters against the reference.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">blob</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="va">neurons</span>, idents <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"12"</span>, <span class="st">"19"</span>, <span class="st">"31"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">blob</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/FindVariableFeatures.html" class="external-link">FindVariableFeatures</a></span><span class="op">(</span><span class="va">blob</span><span class="op">)</span></span>
 <span><span class="va">blob</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/ScaleData.html" class="external-link">ScaleData</a></span><span class="op">(</span><span class="va">blob</span>, features <span class="op">=</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.github.io/seurat-object/reference/VariableFeatures.html" class="external-link">VariableFeatures</a></span><span class="op">(</span><span class="va">blob</span><span class="op">)</span><span class="op">)</span></span>
@@ -266,7 +313,7 @@ That means it under-covers relative to
 call for nearly every cluster but is less precise on the calls it’s
 actually unsure about. Running both and comparing is more informative
 than trusting either alone.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ref_seurat</span> <span class="op">&lt;-</span> <span class="fu">load_reference_seurat_object</span><span class="op">(</span><span class="st">"L4_herm"</span><span class="op">)</span>  <span class="co"># your own reference Seurat object, cell_type in metadata</span></span>
 <span><span class="va">anchors</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/FindTransferAnchors.html" class="external-link">FindTransferAnchors</a></span><span class="op">(</span>reference <span class="op">=</span> <span class="va">ref_seurat</span>, query <span class="op">=</span> <span class="va">neurons</span><span class="op">)</span></span>
 <span><span class="va">predictions</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/TransferData.html" class="external-link">TransferData</a></span><span class="op">(</span>anchorset <span class="op">=</span> <span class="va">anchors</span>, refdata <span class="op">=</span> <span class="va">ref_seurat</span><span class="op">$</span><span class="va">cell_type</span><span class="op">)</span></span>
@@ -284,7 +331,7 @@ purity and mean prediction score both above threshold) are promoted to
 call; a genuine conflict — both methods confident, different answers —
 is flagged <code>"review_conflict"</code> rather than silently resolved
 one way or the other.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">combined</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/combine_with_transfer_data.html">combine_with_transfer_data</a></span><span class="op">(</span><span class="va">result</span>, <span class="va">neurons</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">combined</span><span class="op">$</span><span class="va">decision</span><span class="op">)</span></span></code></pre></div>
 <p>On both datasets this protocol was validated against,
@@ -314,7 +361,7 @@ either method.</p>
 </h2>
 <p><code><a href="../reference/write_cengen_annotations.html">write_cengen_annotations()</a></code> is opt-in per tier — nothing
 is written for clusters you don’t explicitly <code>include</code>:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">neurons</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/write_cengen_annotations.html">write_cengen_annotations</a></span><span class="op">(</span><span class="va">neurons</span>, <span class="va">combined</span>, include <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"annotate"</span>, <span class="st">"provisional"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">neurons</span><span class="op">$</span><span class="va">cengen_annotation</span>, useNA <span class="op">=</span> <span class="st">"ifany"</span><span class="op">)</span></span></code></pre></div>
 <p>Consider keeping <code>"annotate"</code> and
