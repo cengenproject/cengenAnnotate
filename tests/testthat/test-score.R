@@ -2,7 +2,7 @@ test_that("a gene specific to one cell type scores highest there", {
   ref <- make_test_reference()
   panel <- make_panel("c1", "spec_A")
 
-  observed <- score_cengen_matrix(panel, ref)
+  observed <- score_cengen_matrix(panel, ref, combine = "geometric")
   expected <- expected_cluster_scores(make_test_reference_data(), "spec_A")
 
   observed_vec <- stats::setNames(observed$score, observed$cell_type)
@@ -30,15 +30,23 @@ test_that("a housekeeping gene (sd ~ 0) is excluded, not scored as zero, and doe
   expect_equal(observed$score, solo$score, tolerance = 1e-10)
 })
 
-test_that("coverage hinge: pct_expr just below min_pct_expr gates the score to 0", {
+test_that("coverage hinge (geometric mode): pct_expr just below min_pct_expr gates the score to 0", {
   ref <- make_test_reference()
-  below <- score_cengen_matrix(make_panel("c1", "cov_below"), ref, min_pct_expr = 10)
+  below <- score_cengen_matrix(make_panel("c1", "cov_below"), ref, min_pct_expr = 10, combine = "geometric")
   expect_equal(below$score[below$cell_type == "A"], 0, tolerance = 1e-10)
+})
+
+test_that("coverage hinge (arithmetic mode): zero coverage still gets half-credit from specificity", {
+  # This is the intentional, empirically-motivated difference from geometric
+  # mode - a gene just under the coverage floor doesn't lose all its signal.
+  ref <- make_test_reference()
+  below <- score_cengen_matrix(make_panel("c1", "cov_below"), ref, min_pct_expr = 10, combine = "arithmetic")
+  expect_gt(below$score[below$cell_type == "A"], 0)
 })
 
 test_that("coverage hinge: pct_expr just above min_pct_expr yields a nonzero score", {
   ref <- make_test_reference()
-  above <- score_cengen_matrix(make_panel("c1", "cov_above"), ref, min_pct_expr = 10)
+  above <- score_cengen_matrix(make_panel("c1", "cov_above"), ref, min_pct_expr = 10, combine = "geometric")
   observed <- above$score[above$cell_type == "A"]
   expected <- expected_cluster_scores(make_test_reference_data(), "cov_above")[["A"]]
 
@@ -46,15 +54,26 @@ test_that("coverage hinge: pct_expr just above min_pct_expr yields a nonzero sco
   expect_equal(observed, expected, tolerance = 1e-6)
 })
 
-test_that("a cell type with near-zero coverage across the whole panel scores exactly 0, not NaN", {
+test_that("a cell type with near-zero coverage across the whole panel scores exactly 0 (geometric mode), not NaN", {
   ref <- make_test_reference()
   panel <- make_panel("c1", c("spec_A", "cov_below", "cov_above"))
-  observed <- score_cengen_matrix(panel, ref)
+  observed <- score_cengen_matrix(panel, ref, combine = "geometric")
 
   z_score <- observed$score[observed$cell_type == "Z"]
   expect_equal(z_score, 0, tolerance = 1e-10)
   expect_false(is.nan(z_score))
   expect_false(is.na(z_score))
+})
+
+test_that("a cell type with near-zero coverage across the whole panel is finite (arithmetic mode), not NaN", {
+  ref <- make_test_reference()
+  panel <- make_panel("c1", c("spec_A", "cov_below", "cov_above"))
+  observed <- score_cengen_matrix(panel, ref, combine = "arithmetic")
+
+  z_score <- observed$score[observed$cell_type == "Z"]
+  expect_false(is.nan(z_score))
+  expect_false(is.na(z_score))
+  expect_true(z_score >= 0 && z_score <= 1)
 })
 
 test_that("a marker gene absent from the reference is dropped and tallied, other genes unaffected", {
@@ -93,6 +112,18 @@ test_that("geometric combine requires both signals; arithmetic lets one compensa
   expect_lt(geo_a, arith_a)
   expect_true(geo_a >= 0 && geo_a <= 1)
   expect_true(arith_a >= 0 && arith_a <= 1)
+})
+
+test_that("default combine is arithmetic (empirically justified - see roxygen docs)", {
+  ref <- make_test_reference()
+  panel <- make_panel("c1", "cov_above")
+
+  default_result <- score_cengen_matrix(panel, ref)
+  explicit_arithmetic <- score_cengen_matrix(panel, ref, combine = "arithmetic")
+  explicit_geometric <- score_cengen_matrix(panel, ref, combine = "geometric")
+
+  expect_equal(default_result$score, explicit_arithmetic$score)
+  expect_false(isTRUE(all.equal(default_result$score, explicit_geometric$score)))
 })
 
 test_that("all scores are bounded in [0, 1] across a mixed panel and both combine modes", {

@@ -9,7 +9,7 @@ score_cengen_matrix(
   reference,
   top_n = 20,
   min_pct_expr = 10,
-  combine = c("geometric", "arithmetic"),
+  combine = c("arithmetic", "geometric"),
   cov_weight = 0.5,
   spec_weight = 0.5,
   cluster_col = "cluster",
@@ -31,7 +31,7 @@ or an already-prepared panel (a data frame with \code{cluster}, \code{gene},
 count as "covered" in a cell type; below this, coverage is 0.}
 
 \item{combine}{How to combine the coverage and specificity signals per
-gene: \code{"geometric"} (default) or \code{"arithmetic"}.}
+gene: \code{"arithmetic"} (default) or \code{"geometric"}.}
 
 \item{cov_weight, spec_weight}{Weights on the coverage and specificity
 signals (exponents for \code{"geometric"}, linear weights for
@@ -58,11 +58,26 @@ For each gene \code{g} and cell type \code{t}:
 \item \code{z(g,t) = (avg_expr(g,t) - mu_g) / sigma_g}, where \code{mu_g}/\code{sigma_g}
 are gene \code{g}'s mean/sd of \code{avg_expr} across all cell types.
 \code{spec(g,t) = plogis(z(g,t))}.
-\item \code{s(g,t)} combines the two: for \code{combine = "geometric"} (default),
+\item \code{s(g,t)} combines the two: for \code{combine = "arithmetic"} (default),
+\code{cov_weight * cov(g,t) + spec_weight * spec(g,t)}; for \code{"geometric"},
 \code{cov(g,t)^cov_weight * spec(g,t)^spec_weight} (requires both signals
-to be non-trivial simultaneously); for \code{"arithmetic"},
-\code{cov_weight * cov(g,t) + spec_weight * spec(g,t)}.
+to be non-trivial simultaneously).
 }
+
+\code{combine = "arithmetic"} is the default based on an empirical check
+against independent ground-truth labels (see the package vignette):
+marker panels dominated by inherently sparse, low-detection gene
+families (e.g. many chemoreceptor genes) can have near-perfect
+specificity (\code{spec} close to 1) but structurally low coverage even in
+their true cell type, since these are low-copy-number transcripts prone
+to dropout. Requiring both signals to be simultaneously high
+(\code{"geometric"}) then unfairly punishes an otherwise clean, correct
+match. \code{"arithmetic"} lets high specificity compensate for such
+structurally-limited coverage; on a held-out validation set this
+roughly doubled the number of confidently-annotated clusters with no
+measurable loss in precision (still ~100\% concordant with ground
+truth), while still correctly leaving genuinely ambiguous cases (e.g.
+\code{AWC_ON} vs \code{AWC_OFF}) flagged for review.
 The cluster-level score for cell type \code{t} is the mean of \code{s(g,t)} over
 the cluster's usable marker genes. Genes absent from the reference, or
 with near-zero variance across cell types (uninformative), are
