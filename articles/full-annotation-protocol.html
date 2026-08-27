@@ -111,27 +111,33 @@ your sequencing depth and tissue.</p>
 <code class="sourceCode R"><span><span class="va">obj</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.github.io/seurat-object/reference/CreateSeuratObject.html" class="external-link">CreateSeuratObject</a></span><span class="op">(</span>counts <span class="op">=</span> <span class="va">raw_counts</span>, min.cells <span class="op">=</span> <span class="fl">3</span>, min.features <span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span>
 <span><span class="va">obj</span><span class="op">[[</span><span class="st">"percent.mt"</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/PercentageFeatureSet.html" class="external-link">PercentageFeatureSet</a></span><span class="op">(</span><span class="va">obj</span>, pattern <span class="op">=</span> <span class="st">"^MT-"</span><span class="op">)</span></span>
 <span><span class="va">obj</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="va">obj</span>, subset <span class="op">=</span> <span class="va">nFeature_RNA</span> <span class="op">&gt;</span> <span class="fl">200</span> <span class="op">&amp;</span> <span class="va">nFeature_RNA</span> <span class="op">&lt;</span> <span class="fl">6000</span> <span class="op">&amp;</span> <span class="va">percent.mt</span> <span class="op">&lt;</span> <span class="fl">10</span><span class="op">)</span></span></code></pre></div>
-<p><strong>Doublet detection is not part of this protocol.</strong> It’s
-a reasonable thing to add — some of the ambiguous “blob” clusters
-described in step 5 have expression profiles consistent with doublets —
-but it wasn’t validated as part of this pipeline. If you skip it (as
-both reference runs of this protocol did), be aware that heterogeneous
-clusters with otherwise-normal QC metrics may be doublets rather than
-genuine ambiguity, and a doublet-detection step
-(e.g. <code>scDblFinder</code>, <code>DoubletFinder</code>) run before
-clustering would be the natural place to add it if it becomes a problem
-for your data.</p>
+<p><strong>Doublet detection is optional QC hygiene, not a validated fix
+for ambiguous clusters.</strong> Some of the ambiguous “blob” clusters
+described in step 5 do have expression profiles consistent with doublets
+(elevated <code>nCount</code>/<code>nFeature</code>, lower
+<code>percent.mt</code>, concentrated in a handful of specific clusters
+rather than spread evenly) — but when this was tested directly, removing
+those cells and re-scoring left 14 of 15 affected clusters’
+<code>cengenAnnotate</code> calls completely unchanged, and made the
+15th slightly worse (most likely just a smaller-sample-size effect, not
+a real one). So: worth running for its own sake, but don’t expect it to
+resolve ambiguous calls on its own.</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sce</span> <span class="op">&lt;-</span> <span class="fu">scDblFinder</span><span class="fu">::</span><span class="fu">scDblFinder</span><span class="op">(</span><span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.github.io/seurat-object/reference/AssayData.html" class="external-link">GetAssayData</a></span><span class="op">(</span><span class="va">obj</span>, layer <span class="op">=</span> <span class="st">"counts"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">obj</span><span class="op">$</span><span class="va">is_doublet</span> <span class="op">&lt;-</span> <span class="va">sce</span><span class="op">$</span><span class="va">scDblFinder.class</span> <span class="op">==</span> <span class="st">"doublet"</span></span>
+<span><span class="va">obj</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="va">obj</span>, subset <span class="op">=</span> <span class="op">!</span><span class="va">is_doublet</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="normalize-scale-cluster-visualize">2. Normalize, scale, cluster, visualize<a class="anchor" aria-label="anchor" href="#normalize-scale-cluster-visualize"></a>
 </h2>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">obj</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/NormalizeData.html" class="external-link">NormalizeData</a></span><span class="op">(</span><span class="va">obj</span><span class="op">)</span></span>
-<span><span class="va">obj</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/FindVariableFeatures.html" class="external-link">FindVariableFeatures</a></span><span class="op">(</span><span class="va">obj</span><span class="op">)</span></span>
-<span><span class="co"># Scale only the HVGs, not all genes -- scaling every gene on a</span></span>
-<span><span class="co"># whole-animal object is a common cause of memory blowups and buys</span></span>
-<span><span class="co"># nothing downstream, since PCA only uses the HVGs anyway.</span></span>
-<span><span class="va">obj</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/ScaleData.html" class="external-link">ScaleData</a></span><span class="op">(</span><span class="va">obj</span>, features <span class="op">=</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.github.io/seurat-object/reference/VariableFeatures.html" class="external-link">VariableFeatures</a></span><span class="op">(</span><span class="va">obj</span><span class="op">)</span><span class="op">)</span></span>
+<p><code><a href="https://satijalab.org/seurat/reference/SCTransform.html" class="external-link">Seurat::SCTransform()</a></code> is the modern replacement for the
+<code><a href="https://satijalab.org/seurat/reference/NormalizeData.html" class="external-link">NormalizeData()</a></code> / <code><a href="https://satijalab.org/seurat/reference/FindVariableFeatures.html" class="external-link">FindVariableFeatures()</a></code> /
+<code><a href="https://satijalab.org/seurat/reference/ScaleData.html" class="external-link">ScaleData()</a></code> sequence — it regresses out sequencing depth as
+part of its own regularized model, and takes <code>percent.mt</code> as
+an explicit covariate to regress out too (depth alone doesn’t remove a
+mitochondrial-fraction effect):</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">obj</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/SCTransform.html" class="external-link">SCTransform</a></span><span class="op">(</span><span class="va">obj</span>, vars.to.regress <span class="op">=</span> <span class="st">"percent.mt"</span><span class="op">)</span></span>
 <span><span class="va">obj</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/RunPCA.html" class="external-link">RunPCA</a></span><span class="op">(</span><span class="va">obj</span><span class="op">)</span></span>
 <span><span class="va">obj</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/FindNeighbors.html" class="external-link">FindNeighbors</a></span><span class="op">(</span><span class="va">obj</span>, dims <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">30</span><span class="op">)</span></span>
 <span></span>
@@ -144,6 +150,16 @@ for your data.</p>
 <span><span class="va">obj</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/FindClusters.html" class="external-link">FindClusters</a></span><span class="op">(</span><span class="va">obj</span>, algorithm <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">obj</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/RunUMAP.html" class="external-link">RunUMAP</a></span><span class="op">(</span><span class="va">obj</span>, dims <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">30</span><span class="op">)</span></span>
 <span><span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/DimPlot.html" class="external-link">DimPlot</a></span><span class="op">(</span><span class="va">obj</span>, label <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<p><strong>A caveat on switching to <code><a href="https://satijalab.org/seurat/reference/SCTransform.html" class="external-link">SCTransform()</a></code>:</strong>
+every threshold elsewhere in this protocol — the 65%-coverage
+neuron-panel cutoff in step 3, the clustering resolution target in step
+4, and <code>cengenAnnotate</code>’s own
+<code>cutoff</code>/<code>min_gap</code> defaults — was tuned against
+the classic <code>NormalizeData</code>/<code>ScaleData</code> pipeline,
+not against <code><a href="https://satijalab.org/seurat/reference/SCTransform.html" class="external-link">SCTransform()</a></code> output. Switching normalization
+methods can shift cluster boundaries and marker gene rankings, so
+re-check those thresholds (the same way described in step 3) rather than
+assuming they carry over unchanged.</p>
 <p>Look at the UMAP before going further. Clusters that are visually
 diffuse, span multiple separated islands, or sit in a long “smear”
 between two otherwise-distinct clusters are worth noting now — they’re
@@ -168,7 +184,7 @@ cell type, not its average. Build the panel by greedy set-cover against
 the CeNGEN reference — repeatedly find the target cell type the current
 panel covers worst, and add whichever candidate gene rescues that
 specific type the most, until coverage stops improving:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># `reference` is the same cengen_reference used for scoring in step 5.</span></span>
 <span><span class="co"># `target_types` is every CeNGEN cell type in the class you're</span></span>
 <span><span class="co"># subsetting to (e.g. every neuron type); `candidate_pool` is every gene</span></span>
@@ -202,7 +218,7 @@ gene is detected in a high enough fraction of that cluster’s cells (OR
 logic across genes, applied per cluster — not a per-cell “expresses at
 least one panel gene” filter, which is far noisier given single-cell
 dropout):</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">panel_present</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">intersect</a></span><span class="op">(</span><span class="va">panel</span>, <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">obj</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">pos_mat</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.github.io/seurat-object/reference/FetchData.html" class="external-link">FetchData</a></span><span class="op">(</span><span class="va">obj</span>, vars <span class="op">=</span> <span class="va">panel_present</span>, layer <span class="op">=</span> <span class="st">"counts"</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0</span></span>
 <span><span class="va">pct_by_cluster</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">panel_present</span>, <span class="kw">function</span><span class="op">(</span><span class="va">g</span><span class="op">)</span> <span class="op">{</span></span>
@@ -237,9 +253,8 @@ the full dataset usually needs finer resolution once it’s the only thing
 in the embedding. Redo variable features, scaling, PCA, and clustering
 on the subset from scratch, typically at higher
 <code>resolution</code>:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">neurons</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/FindVariableFeatures.html" class="external-link">FindVariableFeatures</a></span><span class="op">(</span><span class="va">neurons</span><span class="op">)</span></span>
-<span><span class="va">neurons</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/ScaleData.html" class="external-link">ScaleData</a></span><span class="op">(</span><span class="va">neurons</span>, features <span class="op">=</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.github.io/seurat-object/reference/VariableFeatures.html" class="external-link">VariableFeatures</a></span><span class="op">(</span><span class="va">neurons</span><span class="op">)</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">neurons</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/SCTransform.html" class="external-link">SCTransform</a></span><span class="op">(</span><span class="va">neurons</span>, vars.to.regress <span class="op">=</span> <span class="st">"percent.mt"</span><span class="op">)</span></span>
 <span><span class="va">neurons</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/RunPCA.html" class="external-link">RunPCA</a></span><span class="op">(</span><span class="va">neurons</span><span class="op">)</span></span>
 <span><span class="va">neurons</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/FindNeighbors.html" class="external-link">FindNeighbors</a></span><span class="op">(</span><span class="va">neurons</span>, dims <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">30</span><span class="op">)</span></span>
 <span><span class="va">neurons</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/FindClusters.html" class="external-link">FindClusters</a></span><span class="op">(</span><span class="va">neurons</span>, resolution <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
@@ -249,10 +264,15 @@ on the subset from scratch, typically at higher
 <h2 id="score-clusters-against-cengen">5. Score clusters against CeNGEN<a class="anchor" aria-label="anchor" href="#score-clusters-against-cengen"></a>
 </h2>
 <p>This is the part <code>cengenAnnotate</code> automates directly.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/cengenproject/cengenAnnotate" class="external-link">cengenAnnotate</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">markers</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/FindAllMarkers.html" class="external-link">FindAllMarkers</a></span><span class="op">(</span><span class="va">neurons</span>, only.pos <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co"># SCT-normalized counts need PrepSCTFindMarkers() first, so fold changes</span></span>
+<span><span class="co"># are comparable across cells that got different depth corrections --</span></span>
+<span><span class="co"># skip this line if you stuck with the classic NormalizeData()/ScaleData()</span></span>
+<span><span class="co"># pipeline instead of SCTransform() in steps 2/4.</span></span>
+<span><span class="va">neurons</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/PrepSCTFindMarkers.html" class="external-link">PrepSCTFindMarkers</a></span><span class="op">(</span><span class="va">neurons</span><span class="op">)</span></span>
+<span><span class="va">markers</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/FindAllMarkers.html" class="external-link">FindAllMarkers</a></span><span class="op">(</span><span class="va">neurons</span>, assay <span class="op">=</span> <span class="st">"SCT"</span>, only.pos <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">reference</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/load_cengen_reference.html">load_cengen_reference</a></span><span class="op">(</span><span class="st">"L4_herm"</span><span class="op">)</span>  <span class="co"># match developmental stage/sex where possible</span></span>
 <span></span>
 <span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/score_cengen_clusters.html">score_cengen_clusters</a></span><span class="op">(</span><span class="va">markers</span>, <span class="va">reference</span><span class="op">)</span></span>
@@ -262,7 +282,7 @@ on the subset from scratch, typically at higher
 <code>"review_insufficient_markers"</code>. Inspect the ones sent to
 review with the full cluster x cell-type matrix and the QC dot plot
 before deciding what to do with them:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/cengen_matrix.html">cengen_matrix</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">cluster</span> <span class="op">==</span> <span class="st">"12"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html" class="external-link">arrange</a></span><span class="op">(</span><span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/desc.html" class="external-link">desc</a></span><span class="op">(</span><span class="va">score</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/plot_cengen_dotplot.html">plot_cengen_dotplot</a></span><span class="op">(</span><span class="va">reference</span>, <span class="va">markers</span>, cluster <span class="op">=</span> <span class="st">"12"</span>, scores <span class="op">=</span> <span class="va">result</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -274,7 +294,7 @@ subset just that cluster (or a small group of adjacent,
 similarly-ambiguous clusters — “blobs” that touch or overlap on the
 UMAP) and recluster it alone at higher resolution, then re-score just
 the new sub-clusters against the reference.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">blob</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="va">neurons</span>, idents <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"12"</span>, <span class="st">"19"</span>, <span class="st">"31"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">blob</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/FindVariableFeatures.html" class="external-link">FindVariableFeatures</a></span><span class="op">(</span><span class="va">blob</span><span class="op">)</span></span>
 <span><span class="va">blob</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/ScaleData.html" class="external-link">ScaleData</a></span><span class="op">(</span><span class="va">blob</span>, features <span class="op">=</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.github.io/seurat-object/reference/VariableFeatures.html" class="external-link">VariableFeatures</a></span><span class="op">(</span><span class="va">blob</span><span class="op">)</span><span class="op">)</span></span>
@@ -313,7 +333,7 @@ That means it under-covers relative to
 call for nearly every cluster but is less precise on the calls it’s
 actually unsure about. Running both and comparing is more informative
 than trusting either alone.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ref_seurat</span> <span class="op">&lt;-</span> <span class="fu">load_reference_seurat_object</span><span class="op">(</span><span class="st">"L4_herm"</span><span class="op">)</span>  <span class="co"># your own reference Seurat object, cell_type in metadata</span></span>
 <span><span class="va">anchors</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/FindTransferAnchors.html" class="external-link">FindTransferAnchors</a></span><span class="op">(</span>reference <span class="op">=</span> <span class="va">ref_seurat</span>, query <span class="op">=</span> <span class="va">neurons</span><span class="op">)</span></span>
 <span><span class="va">predictions</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/TransferData.html" class="external-link">TransferData</a></span><span class="op">(</span>anchorset <span class="op">=</span> <span class="va">anchors</span>, refdata <span class="op">=</span> <span class="va">ref_seurat</span><span class="op">$</span><span class="va">cell_type</span><span class="op">)</span></span>
@@ -331,7 +351,7 @@ purity and mean prediction score both above threshold) are promoted to
 call; a genuine conflict — both methods confident, different answers —
 is flagged <code>"review_conflict"</code> rather than silently resolved
 one way or the other.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">combined</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/combine_with_transfer_data.html">combine_with_transfer_data</a></span><span class="op">(</span><span class="va">result</span>, <span class="va">neurons</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">combined</span><span class="op">$</span><span class="va">decision</span><span class="op">)</span></span></code></pre></div>
 <p>On both datasets this protocol was validated against,
@@ -361,7 +381,7 @@ either method.</p>
 </h2>
 <p><code><a href="../reference/write_cengen_annotations.html">write_cengen_annotations()</a></code> is opt-in per tier — nothing
 is written for clusters you don’t explicitly <code>include</code>:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">neurons</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/write_cengen_annotations.html">write_cengen_annotations</a></span><span class="op">(</span><span class="va">neurons</span>, <span class="va">combined</span>, include <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"annotate"</span>, <span class="st">"provisional"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">neurons</span><span class="op">$</span><span class="va">cengen_annotation</span>, useNA <span class="op">=</span> <span class="st">"ifany"</span><span class="op">)</span></span></code></pre></div>
 <p>Consider keeping <code>"annotate"</code> and
