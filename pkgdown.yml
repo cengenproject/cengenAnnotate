@@ -4,7 +4,7 @@ pkgdown_sha: ~
 articles:
   cengenAnnotate: cengenAnnotate.html
   full-annotation-protocol: full-annotation-protocol.html
-last_built: 2026-08-27T10:07Z
+last_built: 2026-08-27T10:13Z
 urls:
   reference: https://cengenproject.github.io/cengenAnnotate/reference
   article: https://cengenproject.github.io/cengenAnnotate/articles

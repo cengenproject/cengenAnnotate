@@ -15,6 +15,12 @@ classifies each cluster as confidently annotatable or in need of manual
 review, based on a tunable score cutoff and the gap to the next-best
 candidate.
 
+We also provide a vignette where `cengenAnnotate` is used in combination
+with Seurat’s
+[`TransferData()`](https://satijalab.org/seurat/reference/TransferData.html)
+to maximize annotation accuracy and depth — see
+[`vignette("full-annotation-protocol")`](https://cengenproject.github.io/cengenAnnotate/articles/full-annotation-protocol.md).
+
 ## Installation
 
 ``` r

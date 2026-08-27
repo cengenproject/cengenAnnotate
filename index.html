@@ -59,6 +59,7 @@
 
 <p><code>cengenAnnotate</code> automates annotation of Seurat clusters in C. elegans single-cell data using <a href="https://www.cengen.org" class="external-link">CeNGEN</a> reference expression data. It replaces the manual workflow of copying marker genes into the CeNGEN website, reading the resulting dot plot by eye, and judging whether a cluster’s marker panel points to a single coherent cell type.</p>
 <p><code>cengenAnnotate</code> computes a “dot-plot-mirrored coherence score” for every (cluster, candidate cell type) pair directly from CeNGEN’s unthresholded expression data (the same average-expression and percent-expressing values a dot plot encodes as color and size), then classifies each cluster as confidently annotatable or in need of manual review, based on a tunable score cutoff and the gap to the next-best candidate.</p>
+<p>We also provide a vignette where <code>cengenAnnotate</code> is used in combination with Seurat’s <code><a href="https://satijalab.org/seurat/reference/TransferData.html" class="external-link">TransferData()</a></code> to maximize annotation accuracy and depth — see <code><a href="articles/full-annotation-protocol.html">vignette("full-annotation-protocol")</a></code>.</p>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
