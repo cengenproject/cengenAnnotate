@@ -59,7 +59,7 @@ whether a CeNGEN dot plot shows one cell type standing out.</p>
 <span>  <span class="va">reference</span>,</span>
 <span>  top_n <span class="op">=</span> <span class="fl">20</span>,</span>
 <span>  min_pct_expr <span class="op">=</span> <span class="fl">10</span>,</span>
-<span>  combine <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"geometric"</span>, <span class="st">"arithmetic"</span><span class="op">)</span>,</span>
+<span>  combine <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"arithmetic"</span>, <span class="st">"geometric"</span><span class="op">)</span>,</span>
 <span>  cov_weight <span class="op">=</span> <span class="fl">0.5</span>,</span>
 <span>  spec_weight <span class="op">=</span> <span class="fl">0.5</span>,</span>
 <span>  cluster_col <span class="op">=</span> <span class="st">"cluster"</span>,</span>
@@ -94,7 +94,7 @@ count as "covered" in a cell type; below this, coverage is 0.</p></dd>
 
 <dt id="arg-combine">combine<a class="anchor" aria-label="anchor" href="#arg-combine"></a></dt>
 <dd><p>How to combine the coverage and specificity signals per
-gene: <code>"geometric"</code> (default) or <code>"arithmetic"</code>.</p></dd>
+gene: <code>"arithmetic"</code> (default) or <code>"geometric"</code>.</p></dd>
 
 
 <dt id="arg-cov-weight-spec-weight">cov_weight, spec_weight<a class="anchor" aria-label="anchor" href="#arg-cov-weight-spec-weight"></a></dt>
@@ -116,11 +116,25 @@ signals (exponents for <code>"geometric"</code>, linear weights for
 <li><p><code>z(g,t) = (avg_expr(g,t) - mu_g) / sigma_g</code>, where <code>mu_g</code>/<code>sigma_g</code>
 are gene <code>g</code>'s mean/sd of <code>avg_expr</code> across all cell types.
 <code>spec(g,t) = plogis(z(g,t))</code>.</p></li>
-<li><p><code>s(g,t)</code> combines the two: for <code>combine = "geometric"</code> (default),
+<li><p><code>s(g,t)</code> combines the two: for <code>combine = "arithmetic"</code> (default),
+<code>cov_weight * cov(g,t) + spec_weight * spec(g,t)</code>; for <code>"geometric"</code>,
 <code>cov(g,t)^cov_weight * spec(g,t)^spec_weight</code> (requires both signals
-to be non-trivial simultaneously); for <code>"arithmetic"</code>,
-<code>cov_weight * cov(g,t) + spec_weight * spec(g,t)</code>.</p></li>
-</ul><p>The cluster-level score for cell type <code>t</code> is the mean of <code>s(g,t)</code> over
+to be non-trivial simultaneously).</p></li>
+</ul><p><code>combine = "arithmetic"</code> is the default based on an empirical check
+against independent ground-truth labels (see the package vignette):
+marker panels dominated by inherently sparse, low-detection gene
+families (e.g. many chemoreceptor genes) can have near-perfect
+specificity (<code>spec</code> close to 1) but structurally low coverage even in
+their true cell type, since these are low-copy-number transcripts prone
+to dropout. Requiring both signals to be simultaneously high
+(<code>"geometric"</code>) then unfairly punishes an otherwise clean, correct
+match. <code>"arithmetic"</code> lets high specificity compensate for such
+structurally-limited coverage; on a held-out validation set this
+roughly doubled the number of confidently-annotated clusters with no
+measurable loss in precision (still ~100% concordant with ground
+truth), while still correctly leaving genuinely ambiguous cases (e.g.
+<code>AWC_ON</code> vs <code>AWC_OFF</code>) flagged for review.
+The cluster-level score for cell type <code>t</code> is the mean of <code>s(g,t)</code> over
 the cluster's usable marker genes. Genes absent from the reference, or
 with near-zero variance across cell types (uninformative), are
 excluded from scoring and tallied in the diagnostic columns.</p>

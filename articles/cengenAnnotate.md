@@ -122,9 +122,9 @@ result
 #> # A tibble: 3 × 11
 #>   cluster best_cell_type best_score second_cell_type second_score   gap
 #>   <chr>   <chr>               <dbl> <chr>                   <dbl> <dbl>
-#> 1 0       N1                  0.892 N2                      0.245 0.648
-#> 2 1       N2                  0.892 N1                      0.245 0.648
-#> 3 2       N3                  0.892 N1                      0.245 0.648
+#> 1 0       N1                  0.893 N2                      0.275 0.618
+#> 2 1       N2                  0.893 N1                      0.275 0.618
+#> 3 2       N3                  0.893 N1                      0.275 0.618
 #> # ℹ 5 more variables: n_genes_used <int>, n_genes_requested <dbl>,
 #> #   n_genes_missing_from_reference <int>, n_genes_uninformative <int>,
 #> #   decision <chr>
@@ -144,12 +144,12 @@ cengen_matrix(result) |> filter(cluster == "0") |> arrange(desc(score))
 #> # A tibble: 6 × 7
 #>   cluster cell_type score n_genes_used n_genes_requested n_genes_missing_from_…¹
 #>   <chr>   <chr>     <dbl>        <int>             <dbl>                   <int>
-#> 1 0       N1        0.892            3                 3                       0
-#> 2 0       N2        0.245            3                 3                       0
-#> 3 0       N3        0.245            3                 3                       0
-#> 4 0       N4        0.245            3                 3                       0
-#> 5 0       N5        0.245            3                 3                       0
-#> 6 0       N6        0.245            3                 3                       0
+#> 1 0       N1        0.893            3                 3                       0
+#> 2 0       N2        0.275            3                 3                       0
+#> 3 0       N3        0.275            3                 3                       0
+#> 4 0       N4        0.275            3                 3                       0
+#> 5 0       N5        0.275            3                 3                       0
+#> 6 0       N6        0.275            3                 3                       0
 #> # ℹ abbreviated name: ¹​n_genes_missing_from_reference
 #> # ℹ 1 more variable: n_genes_uninformative <int>
 ```

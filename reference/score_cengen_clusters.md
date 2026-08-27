@@ -17,7 +17,7 @@ score_cengen_clusters(
   reference,
   top_n = 20,
   min_pct_expr = 10,
-  combine = c("geometric", "arithmetic"),
+  combine = c("arithmetic", "geometric"),
   cov_weight = 0.5,
   spec_weight = 0.5,
   cutoff = 0.6,
@@ -58,7 +58,7 @@ score_cengen_clusters(
 - combine:
 
   How to combine the coverage and specificity signals per gene:
-  `"geometric"` (default) or `"arithmetic"`.
+  `"arithmetic"` (default) or `"geometric"`.
 
 - cov_weight, spec_weight:
 
