@@ -82,6 +82,8 @@ relying on this package for unattended annotation.
   : Get the full cluster x cell-type score matrix
 - [`classify_cengen_matches()`](https://cengenproject.github.io/cengenAnnotate/reference/classify_cengen_matches.md)
   : Classify clusters as annotatable or in need of review
+- [`combine_with_transfer_data()`](https://cengenproject.github.io/cengenAnnotate/reference/combine_with_transfer_data.md)
+  : Combine cengenAnnotate results with Seurat TransferData predictions
 - [`list_cengen_datasets()`](https://cengenproject.github.io/cengenAnnotate/reference/list_cengen_datasets.md)
   : List available CeNGEN reference datasets
 - [`load_cengen_reference()`](https://cengenproject.github.io/cengenAnnotate/reference/load_cengen_reference.md)
